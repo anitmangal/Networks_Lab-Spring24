@@ -68,7 +68,7 @@ int main(int argc, char *argv[])
 
         // buf[bytesRead]='\0';
         strcpy(buf,"HELO ");
-        strcat(buf, argv[1]);
+        strcat(buf, argv[1]);                                       // CLIENT IP here, Section 4.1.1.1
 
         send(sockfd, buf, strlen(buf), 0);
 
@@ -80,7 +80,7 @@ int main(int argc, char *argv[])
         to=(char *)malloc(100*sizeof(char));
         subject=(char *)malloc(100*sizeof(char));
 
-        // check format, unsure about the <CR><LF>
+        // check format, unsure about the <CR><LF> part         ---> <CR><LF> is \r\n
         getline(&from, &maxLen, stdin);
         for(int i=0; i<100; i++)
         {
@@ -137,7 +137,7 @@ int main(int argc, char *argv[])
         }
         lines++;
 
-        //from
+        //from                                                      // Add <> for email address in both MAIL FROM and RCPT TO and no space after :
         strcpy(buf, "MAIL FROM: ");
         strcat(buf, from+6);
 
