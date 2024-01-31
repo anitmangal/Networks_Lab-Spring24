@@ -61,7 +61,6 @@ int main(int argc, char * argv[]) {
                 send(newsockid, buf, strlen(buf), 0);
                 recv(newsockid, buf, 100, 0);
                 if (strncmp(buf, "MAIL FROM:", 10) == 0) {
-                    // printf("Mail from\n"); //debug
                     int i = 11;
                     char from_user[100], from_domain[100];
                     while (buf[i] != '@') {
@@ -80,7 +79,6 @@ int main(int argc, char * argv[]) {
                     send(newsockid, buf, strlen(buf), 0);
                     recv(newsockid, buf, 100, 0);
                     if (strncmp(buf, "RCPT TO:", 8) == 0) {
-                        // printf("RCPT to\n"); //debug
                         i = 9;
                         char to_user[100], to_domain[100];
                         while (buf[i] != '@') {
@@ -111,15 +109,12 @@ int main(int argc, char * argv[]) {
                             f = fopen(to_user, "a");
                             recv(newsockid, buf, 100, 0);
                             if (strncmp(buf, "DATA", 4) == 0) {
-                                // printf("DATA\n"); //debug
                                 strcpy(buf, "354 End data with <CR><LF>.<CR><LF>\r\n");
                                 send(newsockid, buf, strlen(buf), 0);
                                 char writebuf[100];
                                 int write_ind = 0, recv_ind = 0, cnt = 0;
-                                // printf("test1\n"); //debug
                                 int recvbytes = recv(newsockid, buf, 100, 0);
                                 while (cnt < 3) {
-                                    // printf("test2\n"); //debug
                                     while (recv_ind < recvbytes && buf[recv_ind] != '\r') {
                                         writebuf[write_ind] = buf[recv_ind];
                                         write_ind++;
@@ -132,21 +127,19 @@ int main(int argc, char * argv[]) {
                                     else {
                                         writebuf[write_ind] = '\0';
                                         fprintf(f, "%s\n", writebuf);
-                                        // printf("1%s\n", writebuf); //debug
                                         write_ind = 0;
                                         recv_ind += 2;
                                         cnt++;
                                     }
                                 }
 
-                                strcpy(writebuf, "Recieved: ");
+                                strcpy(writebuf, "Received: ");
                                 time_t t = time(NULL);
                                 struct tm * tm = localtime(&t);
                                 char timebuf[100];
                                 strftime(timebuf, 100, "%d/%m/%y:%H:%M", tm);
                                 strcat(writebuf, timebuf);
                                 fprintf(f, "%s\n", writebuf);
-                                // printf("2%s\n", writebuf); //debug
 
                                 while(1) {
                                     while (recv_ind < recvbytes && buf[recv_ind] != '\r') {
@@ -161,7 +154,6 @@ int main(int argc, char * argv[]) {
                                     else {
                                         writebuf[write_ind] = '\0';
                                         fprintf(f, "%s\n", writebuf);
-                                        // printf("3%s\n", writebuf); //debug
                                         if (write_ind == 1 && writebuf[0] == '.') {
                                             break;
                                         }

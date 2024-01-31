@@ -30,229 +30,328 @@ int main(int argc, char *argv[])
     scanf("%s", username);
     printf("Password: ");
     scanf("%s", password);
+    char tmp;
+    scanf("%c", &tmp);          // to consume the \n after the password
 
-    // ask for choice
-    printf("1. Manage Mail\n2. Send Mail\n3. Quit\nWhatchu wanna do?: ");
-    int choice;
-    scanf("%d", &choice);
-    switch (choice)
+    while(1)
     {
-    case 1:
-    {
-        break;
-    }
-    case 2:
-    {
-        if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+        // ask for choice
+        printf("1. Manage Mail\n2. Send Mail\n3. Quit\nWhat would you like to do?: ");
+        int choice;
+        scanf("%d", &choice);
+        switch (choice)
         {
-            perror("Unable to create socket\n");
-            exit(0);
-        }
-
-        serv_addr.sin_family = AF_INET;
-        inet_aton(argv[1], &serv_addr.sin_addr);
-        serv_addr.sin_port = htons(atoi(argv[2]));
-
-        if ((connect(sockfd, (struct sockaddr *)&serv_addr,
-                     sizeof(serv_addr))) < 0)
-        {
-            perror("Unable to connect to server\n");
-            exit(0);
-        }
-
-        // Get local address information
-        if (getsockname(sockfd, (struct sockaddr *)&local_addr, &local_addr_len) < 0) {
-            perror("Unable to get local address\n");
-            exit(EXIT_FAILURE);
-        }
-
-        char local_ip[INET_ADDRSTRLEN];
-        inet_ntop(AF_INET, &local_addr.sin_addr, local_ip, sizeof(local_ip));
-
-        // shud get 220
-        bytesRead=recv(sockfd, buf, 100, 0);
-        if(bytesRead<0)
-        {
-            perror("Unable to read from socket\n");
-            exit(0);
-        }
-
-        // buf[bytesRead]='\0'; //debug
-        // printf("%s", buf);  //debug
-        strcpy(buf,"HELO ");
-        strcat(buf, local_ip);                                       // CLIENT IP here, Section 4.1.1.1
-
-        send(sockfd, buf, strlen(buf), 0);
-
-        // shud get 250
-        bytesRead=recv(sockfd, buf, 100, 0);
-        // buf[bytesRead]='\0'; //debug
-        // printf("%s", buf);  //debug
-
-        char *from, *to, *subject, *body[50];
-        from=(char *)malloc(100*sizeof(char));
-        to=(char *)malloc(100*sizeof(char));
-        subject=(char *)malloc(100*sizeof(char));
-
-        char tmp;
-        scanf("%c", &tmp); // to consume the \n after the choice, can we do without it????
-        printf("Enter the mail:\n");
-
-        // check format, unsure about the <CR><LF> part         ---> <CR><LF> is \r\n, check if fixed now!
-        getline(&from, &maxLen, stdin);
-        for(int i=0; i<100; i++)
-        {
-            if(from[i]=='\n')
+            case 1:
             {
-                // from[i]='\r';
-                // from[i+1]='\n';
-                from[i]='\0';
                 break;
             }
-        }
-
-        getline(&to, &maxLen, stdin);
-        for(int i=0; i<100; i++)
-        {
-            if(to[i]=='\n')
+            case 2:
             {
-                // to[i]='\r';
-                // to[i+1]='\n';
-                to[i]='\0';
-                break;
-            }
-        }
-
-        getline(&subject, &maxLen, stdin);
-        for(int i=0; i<100; i++)
-        {
-            if(subject[i]=='\n')
-            {
-                // subject[i]='\r';
-                // subject[i+1]='\n';
-                subject[i]='\0';
-                break;
-            }
-        }
-        int lines = 0;
-        while (1)
-        {
-            body[lines] = (char *)malloc(100 * sizeof(char));
-            getline(&body[lines], &maxLen, stdin);
-            for(int j=0; j<100; j++)
-            {
-                if(body[lines][j]=='\n')
+                if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
                 {
-                    body[lines][j]='\r';
-                    body[lines][j+1]='\n';
-                    body[lines][j+2]='\0';
-                    break;
+                    perror("Unable to create socket\n");
+                    exit(0);
                 }
-            }
-            if (strcmp(body[lines], ".\r\n") == 0)
+
+                serv_addr.sin_family = AF_INET;
+                inet_aton(argv[1], &serv_addr.sin_addr);
+                serv_addr.sin_port = htons(atoi(argv[2]));
+
+                if ((connect(sockfd, (struct sockaddr *)&serv_addr,
+                            sizeof(serv_addr))) < 0)
+                {
+                    perror("Unable to connect to server\n");
+                    exit(0);
+                }
+
+                // Get local address information
+                if (getsockname(sockfd, (struct sockaddr *)&local_addr, &local_addr_len) < 0) {
+                    perror("Unable to get local address\n");
+                    exit(EXIT_FAILURE);
+                }
+
+                char local_ip[INET_ADDRSTRLEN];
+                inet_ntop(AF_INET, &local_addr.sin_addr, local_ip, sizeof(local_ip));
+
+                // shud get 220
+                bytesRead=recv(sockfd, buf, 100, 0);
+                if(bytesRead<0)
+                {
+                    perror("Unable to read from socket\n");
+                    exit(0);
+                }
+                if(!strncmp(buf, "220", 3)){
+                    strcpy(buf,"HELO ");
+                    strcat(buf, local_ip);                  
+
+                    send(sockfd, buf, strlen(buf), 0);
+
+                    // shud get 250
+                    bytesRead=recv(sockfd, buf, 100, 0);
+                    if(bytesRead<0)
+                    {
+                        perror("Unable to read from socket\n");
+                        exit(0);
+                    }
+                    if(!strncmp(buf,"250",3)){
+                        char *from, *to, *subject, *body[50];
+                        from=(char *)malloc(100*sizeof(char));
+                        to=(char *)malloc(100*sizeof(char));
+                        subject=(char *)malloc(100*sizeof(char));
+
+                        scanf("%c", &tmp);          // to consume the \n after the choice
+                        printf("Enter the mail:\n");
+
+                        getline(&from, &maxLen, stdin);
+                        if(strncmp(from, "From: ", 6))
+                        {
+                            printf("Enter valid mail!\n");
+                            close(sockfd);
+                            break;
+                        }
+                        int f=1;
+                        for(int i=6;i<100;i++)
+                        {
+                            if(i==6){
+                                if(from[i]=='@'||from[i]==' '){
+                                    printf("Enter valid mail!\n");
+                                    close(sockfd);
+                                    f=0;
+                                    break;
+                                }
+                            }
+                            if(i==99){
+                                printf("Enter valid mail!\n");
+                                close(sockfd);
+                                f=0;
+                                break;
+                            }
+                            if(from[i]=='@' && from[i+1]!='\n'){
+                                break;
+                            }
+                        }
+                        if(f==0){
+                            break;
+                        }
+                        for(int i=0; i<100; i++)
+                        {
+                            if(from[i]=='\n')
+                            {
+                                from[i]='\0';
+                                break;
+                            }
+                        }
+
+                        getline(&to, &maxLen, stdin);
+                        if(strncmp(to, "To: ", 4))
+                        {
+                            printf("Enter valid mail!\n");
+                            close(sockfd);
+                            break;
+                        }
+                        f=1;
+                        for(int i=4;i<100;i++)
+                        {
+                            if(i==4){
+                                if(to[i]=='@'||to[i]==' '){
+                                    printf("Enter valid mail!\n");
+                                    close(sockfd);
+                                    f=0;
+                                    break;
+                                }
+                            }
+                            if(i==99){
+                                printf("Enter valid mail!\n");
+                                close(sockfd);
+                                f=0;
+                                break;
+                            }
+                            if(to[i]=='@' && to[i+1]!='\n'){
+                                break;
+                            }
+                        }
+                        if(f==0){
+                            break;
+                        }
+                        for(int i=0; i<100; i++)
+                        {
+                            if(to[i]=='\n')
+                            {
+                                to[i]='\0';
+                                break;
+                            }
+                        }
+
+                        getline(&subject, &maxLen, stdin);
+                        if(strncmp(subject, "Subject: ", 9))
+                        {
+                            printf("Enter valid mail!\n");
+                            close(sockfd);
+                            break;
+                        }
+                        for(int i=0; i<100; i++)
+                        {
+                            if(subject[i]=='\n')
+                            {
+                                subject[i]='\0';
+                                break;
+                            }
+                        }
+                        int lines = 0;
+                        while (lines<50)
+                        {
+                            body[lines] = (char *)malloc(100 * sizeof(char));
+                            getline(&body[lines], &maxLen, stdin);
+                            for(int j=0; j<100; j++)
+                            {
+                                if(body[lines][j]=='\n')
+                                {
+                                    body[lines][j]='\r';
+                                    body[lines][j+1]='\n';
+                                    body[lines][j+2]='\0';
+                                    break;
+                                }
+                            }
+                            if (strcmp(body[lines], ".\r\n") == 0)
+                                break;
+                            lines++;
+                        }
+                        if(lines==50){
+                            printf("Mail too long!\n");
+                            close(sockfd);
+                            break;
+                        }
+                        if(strcmp(body[lines], ".\r\n")){
+                            printf("Enter valid mail!\n");
+                            close(sockfd);
+                            break;
+                        }
+                        lines++;
+
+                        //from
+                        strcpy(buf, "MAIL FROM:<");
+                        strcat(buf, from+6);
+                        strcat(buf, ">\r\n\0");
+                        send(sockfd, buf, strlen(buf), 0);
+
+                        // shud get 250
+                        bytesRead=recv(sockfd, buf, 100, 0);
+                        if(bytesRead<0)
+                        {
+                            perror("Unable to read from socket\n");
+                            exit(0);
+                        }
+                        if(!strncmp(buf,"250",3)){
+                            //to
+                            strcpy(buf, "RCPT TO:<");
+                            strcat(buf, to+4);
+                            strcat(buf, ">\r\n\0");
+
+                            send(sockfd, buf, strlen(buf), 0);
+
+                            // shud get 250
+                            bytesRead=recv(sockfd, buf, 100, 0);
+                            if(bytesRead<0)
+                            {
+                                perror("Unable to read from socket\n");
+                                exit(0);
+                            }
+                            if(!strncmp(buf,"250",3)){
+                                send(sockfd, "DATA\r\n", 6, 0);
+
+                                // shud get 354
+                                bytesRead=recv(sockfd, buf, 100, 0);
+                                if(bytesRead<0)
+                                {
+                                    perror("Unable to read from socket\n");
+                                    exit(0);
+                                }
+                                if(!strncmp(buf,"354",3)){
+                                    // sending mail data
+                                    for(int i=0; i<100; i++)        //the 3 loops are for adding <CR><LF> at the end of each line
+                                    {
+                                        if(from[i]=='\0')
+                                        {
+                                            from[i]='\r';
+                                            from[i+1]='\n';
+                                            from[i+2]='\0';
+                                            break;
+                                        }
+                                    }
+
+                                    for(int i=0; i<100; i++)
+                                    {
+                                        if(to[i]=='\0')
+                                        {
+                                            to[i]='\r';
+                                            to[i+1]='\n';
+                                            to[i+2]='\0';
+                                            break;
+                                        }
+                                    }
+
+                                    for(int i=0; i<100; i++)
+                                    {
+                                        if(subject[i]=='\0')
+                                        {
+                                            subject[i]='\r';
+                                            subject[i+1]='\n';
+                                            subject[i+2]='\0';
+                                            break;
+                                        }
+                                    }
+
+                                    send(sockfd, from, strlen(from), 0);
+                                    send(sockfd, to, strlen(to), 0);
+                                    send(sockfd, subject, strlen(subject), 0);
+
+                                    for(int i=0; i<lines; i++)
+                                    {
+                                        send(sockfd, body[i], strlen(body[i]), 0);
+                                    }
+
+                                    // shud get 250
+                                    bytesRead=recv(sockfd, buf, 100, 0);
+                                    if(bytesRead<0)
+                                    {
+                                        perror("Unable to read from socket\n");
+                                        exit(0);
+                                    }
+                                    if(!strncmp(buf,"250",3)){     
+                                        send(sockfd, "QUIT\r\n", 6, 0);
+
+                                        // shud get 221
+                                        bytesRead=recv(sockfd, buf, 100, 0);
+                                        if(bytesRead<0)
+                                        {
+                                            perror("Unable to read from socket\n");
+                                            exit(0);
+                                        }
+                                        if(!strncmp(buf,"221",3)){
+                                            printf("Mail sent successfully!\n");
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                else{
+                    printf("Error occured!\n");
+                }
+
+                close(sockfd);
                 break;
-            lines++;
-        }
-        lines++;
-
-        //from                                                      // Add <> for email address in both MAIL FROM and RCPT TO and no space after :, check if fixed now!
-        strcpy(buf, "MAIL FROM:<");
-        strcat(buf, from+6);
-        strcat(buf, ">\r\n\0");
-        // printf("%s", buf);  //debug
-        send(sockfd, buf, strlen(buf), 0);
-
-        // shud get 250
-        bytesRead=recv(sockfd, buf, 100, 0);
-        // buf[bytesRead]='\0'; //debug
-        // printf("%s", buf);  //debug
-
-        //to
-        strcpy(buf, "RCPT TO:<");
-        strcat(buf, to+4);
-        strcat(buf, ">\r\n\0");
-
-        // printf("%s", buf);  //debug
-        send(sockfd, buf, strlen(buf), 0);
-
-        // shud get 250
-        bytesRead=recv(sockfd, buf, 100, 0);
-        // buf[bytesRead]='\0'; //debug
-        // printf("%s", buf);  //debug
-
-        send(sockfd, "DATA\r\n", 6, 0);
-
-        // shud get 354
-        bytesRead=recv(sockfd, buf, 100, 0);
-        // buf[bytesRead]='\0'; //debug
-        // printf("%s", buf);  //debug
-
-        // sending mail data
-        for(int i=0; i<100; i++)        //added these 3 for senidng right data
-        {
-            if(from[i]=='\0')
+            }
+            case 3:
             {
-                from[i]='\r';
-                from[i+1]='\n';
-                from[i+2]='\0';
-                break;
+                exit(0);
             }
-        }
-
-        for(int i=0; i<100; i++)
-        {
-            if(to[i]=='\0')
+            default:
             {
-                to[i]='\r';
-                to[i+1]='\n';
-                to[i+2]='\0';
-                break;
+                printf("Enter valid choice!\n");
             }
         }
-
-        for(int i=0; i<100; i++)
-        {
-            if(subject[i]=='\0')
-            {
-                subject[i]='\r';
-                subject[i+1]='\n';
-                subject[i+2]='\0';
-                break;
-            }
-        }
-        // printf("%s", from);  //debug
-        send(sockfd, from, strlen(from), 0);
-
-        // printf("%s", to);  //debug
-        send(sockfd, to, strlen(to), 0);
-
-        // printf("%s", subject);  //debug
-        send(sockfd, subject, strlen(subject), 0);
-        for(int i=0; i<lines; i++)
-        {
-            // printf("%s", body[i]);  //debug
-            send(sockfd, body[i], strlen(body[i]), 0);
-        }
-
-        // shud get 250
-        bytesRead=recv(sockfd, buf, 100, 0);
-        // buf[bytesRead]='\0'; //debug
-        // printf("%s", buf);  //debug
-
-        send(sockfd, "QUIT\r\n", 6, 0);
-
-        // shud get 221
-        bytesRead=recv(sockfd, buf, 100, 0);
-        // buf[bytesRead]='\0'; //debug
-        // printf("%s", buf);  //debug
-
-        close(sockfd);
-        break;
-    }
-    case 3:
-    {
-        exit(0);
-    }
     }
 
     exit(0);
