@@ -16,9 +16,11 @@ int main(int argc, char *argv[])
         exit(0);
     }
     int sockfd;
-    struct sockaddr_in serv_addr;
+    struct sockaddr_in serv_addr, local_addr;
+    socklen_t local_addr_len = sizeof(local_addr);
     char buf[100];
-    int bytesRead, maxLen=100;
+    int bytesRead;
+    size_t maxLen=100;
     char *username, *password;
     username=(char *)malloc(100*sizeof(char));
     password=(char *)malloc(100*sizeof(char));
@@ -58,6 +60,15 @@ int main(int argc, char *argv[])
             exit(0);
         }
 
+        // Get local address information
+        if (getsockname(sockfd, (struct sockaddr *)&local_addr, &local_addr_len) < 0) {
+            perror("Unable to get local address\n");
+            exit(EXIT_FAILURE);
+        }
+
+        char local_ip[INET_ADDRSTRLEN];
+        inet_ntop(AF_INET, &local_addr.sin_addr, local_ip, sizeof(local_ip));
+
         // shud get 220
         bytesRead=recv(sockfd, buf, 100, 0);
         if(bytesRead<0)
@@ -66,29 +77,35 @@ int main(int argc, char *argv[])
             exit(0);
         }
 
-        // buf[bytesRead]='\0';
+        buf[bytesRead]='\0'; //debug
+        printf("%s", buf);  //debug
         strcpy(buf,"HELO ");
-        strcat(buf, argv[1]);                                       // CLIENT IP here, Section 4.1.1.1
+        strcat(buf, local_ip);                                       // CLIENT IP here, Section 4.1.1.1
 
         send(sockfd, buf, strlen(buf), 0);
 
         // shud get 250
-        recv(sockfd, buf, 100, 0);
+        bytesRead=recv(sockfd, buf, 100, 0);
+        buf[bytesRead]='\0'; //debug
+        printf("%s", buf);  //debug
 
         char *from, *to, *subject, *body[50];
         from=(char *)malloc(100*sizeof(char));
         to=(char *)malloc(100*sizeof(char));
         subject=(char *)malloc(100*sizeof(char));
 
-        // check format, unsure about the <CR><LF> part         ---> <CR><LF> is \r\n
+        char tmp;
+        scanf("%c", &tmp); // to consume the \n after the choice, can we do without it???
+
+        // check format, unsure about the <CR><LF> part         ---> <CR><LF> is \r\n, check if fixed now!
         getline(&from, &maxLen, stdin);
         for(int i=0; i<100; i++)
         {
             if(from[i]=='\n')
             {
-                from[i]='\r';
-                from[i+1]='\n';
-                from[i+2]='\0';
+                // from[i]='\r';
+                // from[i+1]='\n';
+                from[i]='\0';
                 break;
             }
         }
@@ -98,9 +115,9 @@ int main(int argc, char *argv[])
         {
             if(to[i]=='\n')
             {
-                to[i]='\r';
-                to[i+1]='\n';
-                to[i+2]='\0';
+                // to[i]='\r';
+                // to[i+1]='\n';
+                to[i]='\0';
                 break;
             }
         }
@@ -110,9 +127,9 @@ int main(int argc, char *argv[])
         {
             if(subject[i]=='\n')
             {
-                subject[i]='\r';
-                subject[i+1]='\n';
-                subject[i+2]='\0';
+                // subject[i]='\r';
+                // subject[i+1]='\n';
+                subject[i]='\0';
                 break;
             }
         }
@@ -125,8 +142,8 @@ int main(int argc, char *argv[])
             {
                 if(body[lines][j]=='\n')
                 {
-                    // body[lines][j]='\r';
-                    // body[lines][j+1]='\n';
+                    body[lines][j]='\r';
+                    body[lines][j+1]='\n';
                     body[lines][j+2]='\0';
                     break;
                 }
@@ -141,44 +158,90 @@ int main(int argc, char *argv[])
         strcpy(buf, "MAIL FROM:<");
         strcat(buf, from+6);
         strcat(buf, ">\r\n\0");
-
+        printf("%s", buf);  //debug
         send(sockfd, buf, strlen(buf), 0);
 
         // shud get 250
-        recv(sockfd, buf, 100, 0);
+        bytesRead=recv(sockfd, buf, 100, 0);
+        buf[bytesRead]='\0'; //debug
+        printf("%s", buf);  //debug
 
         //to
         strcpy(buf, "RCPT TO:<");
         strcat(buf, to+4);
         strcat(buf, ">\r\n\0");
 
+        printf("%s", buf);  //debug
         send(sockfd, buf, strlen(buf), 0);
 
         // shud get 250
-        recv(sockfd, buf, 100, 0);
+        bytesRead=recv(sockfd, buf, 100, 0);
+        buf[bytesRead]='\0'; //debug
+        printf("%s", buf);  //debug
 
+        printf("%s", buf);  //debug
         send(sockfd, "DATA\r\n", 6, 0);
 
         // shud get 354
-        recv(sockfd, buf, 100, 0);
+        bytesRead=recv(sockfd, buf, 100, 0);
+        buf[bytesRead]='\0'; //debug
+        printf("%s", buf);  //debug
 
         // sending mail data
         
         send(sockfd, from, strlen(from), 0);
         send(sockfd, to, strlen(to), 0);
         send(sockfd, subject, strlen(subject), 0);
+        for(int i=0; i<100; i++)        //added these 3 for senidng right data
+        {
+            if(from[i]=='\0')
+            {
+                from[i]='\r';
+                from[i+1]='\n';
+                from[i+2]='\0';
+                break;
+            }
+        }
+
+        getline(&to, &maxLen, stdin);
+        for(int i=0; i<100; i++)
+        {
+            if(to[i]=='\0')
+            {
+                to[i]='\r';
+                to[i+1]='\n';
+                to[i+2]='\0';
+                break;
+            }
+        }
+
+        getline(&subject, &maxLen, stdin);
+        for(int i=0; i<100; i++)
+        {
+            if(subject[i]=='\0')
+            {
+                subject[i]='\r';
+                subject[i+1]='\n';
+                subject[i+2]='\0';
+                break;
+            }
+        }
         for(int i=0; i<lines; i++)
         {
             send(sockfd, body[i], strlen(body[i]), 0);
         }
 
         // shud get 250
-        recv(sockfd, buf, 100, 0);
+        bytesRead=recv(sockfd, buf, 100, 0);
+        buf[bytesRead]='\0'; //debug
+        printf("%s", buf);  //debug
 
         send(sockfd, "QUIT\r\n", 6, 0);
 
         // shud get 221
-        recv(sockfd, buf, 100, 0);
+        bytesRead=recv(sockfd, buf, 100, 0);
+        buf[bytesRead]='\0'; //debug
+        printf("%s", buf);  //debug
 
         close(sockfd);
         break;
