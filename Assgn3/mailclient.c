@@ -179,7 +179,6 @@ int main(int argc, char *argv[])
         buf[bytesRead]='\0'; //debug
         printf("%s", buf);  //debug
 
-        printf("%s", buf);  //debug
         send(sockfd, "DATA\r\n", 6, 0);
 
         // shud get 354
@@ -188,10 +187,6 @@ int main(int argc, char *argv[])
         printf("%s", buf);  //debug
 
         // sending mail data
-        
-        send(sockfd, from, strlen(from), 0);
-        send(sockfd, to, strlen(to), 0);
-        send(sockfd, subject, strlen(subject), 0);
         for(int i=0; i<100; i++)        //added these 3 for senidng right data
         {
             if(from[i]=='\0')
@@ -203,7 +198,6 @@ int main(int argc, char *argv[])
             }
         }
 
-        getline(&to, &maxLen, stdin);
         for(int i=0; i<100; i++)
         {
             if(to[i]=='\0')
@@ -215,7 +209,6 @@ int main(int argc, char *argv[])
             }
         }
 
-        getline(&subject, &maxLen, stdin);
         for(int i=0; i<100; i++)
         {
             if(subject[i]=='\0')
@@ -226,8 +219,17 @@ int main(int argc, char *argv[])
                 break;
             }
         }
+        printf("%s", from);  //debug
+        send(sockfd, from, strlen(from), 0);
+
+        printf("%s", to);  //debug
+        send(sockfd, to, strlen(to), 0);
+
+        printf("%s", subject);  //debug
+        send(sockfd, subject, strlen(subject), 0);
         for(int i=0; i<lines; i++)
         {
+            printf("%s", body[i]);  //debug
             send(sockfd, body[i], strlen(body[i]), 0);
         }
 
