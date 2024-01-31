@@ -77,8 +77,8 @@ int main(int argc, char *argv[])
             exit(0);
         }
 
-        buf[bytesRead]='\0'; //debug
-        printf("%s", buf);  //debug
+        // buf[bytesRead]='\0'; //debug
+        // printf("%s", buf);  //debug
         strcpy(buf,"HELO ");
         strcat(buf, local_ip);                                       // CLIENT IP here, Section 4.1.1.1
 
@@ -86,8 +86,8 @@ int main(int argc, char *argv[])
 
         // shud get 250
         bytesRead=recv(sockfd, buf, 100, 0);
-        buf[bytesRead]='\0'; //debug
-        printf("%s", buf);  //debug
+        // buf[bytesRead]='\0'; //debug
+        // printf("%s", buf);  //debug
 
         char *from, *to, *subject, *body[50];
         from=(char *)malloc(100*sizeof(char));
@@ -95,7 +95,8 @@ int main(int argc, char *argv[])
         subject=(char *)malloc(100*sizeof(char));
 
         char tmp;
-        scanf("%c", &tmp); // to consume the \n after the choice, can we do without it???
+        scanf("%c", &tmp); // to consume the \n after the choice, can we do without it????
+        printf("Enter the mail:\n");
 
         // check format, unsure about the <CR><LF> part         ---> <CR><LF> is \r\n, check if fixed now!
         getline(&from, &maxLen, stdin);
@@ -158,33 +159,33 @@ int main(int argc, char *argv[])
         strcpy(buf, "MAIL FROM:<");
         strcat(buf, from+6);
         strcat(buf, ">\r\n\0");
-        printf("%s", buf);  //debug
+        // printf("%s", buf);  //debug
         send(sockfd, buf, strlen(buf), 0);
 
         // shud get 250
         bytesRead=recv(sockfd, buf, 100, 0);
-        buf[bytesRead]='\0'; //debug
-        printf("%s", buf);  //debug
+        // buf[bytesRead]='\0'; //debug
+        // printf("%s", buf);  //debug
 
         //to
         strcpy(buf, "RCPT TO:<");
         strcat(buf, to+4);
         strcat(buf, ">\r\n\0");
 
-        printf("%s", buf);  //debug
+        // printf("%s", buf);  //debug
         send(sockfd, buf, strlen(buf), 0);
 
         // shud get 250
         bytesRead=recv(sockfd, buf, 100, 0);
-        buf[bytesRead]='\0'; //debug
-        printf("%s", buf);  //debug
+        // buf[bytesRead]='\0'; //debug
+        // printf("%s", buf);  //debug
 
         send(sockfd, "DATA\r\n", 6, 0);
 
         // shud get 354
         bytesRead=recv(sockfd, buf, 100, 0);
-        buf[bytesRead]='\0'; //debug
-        printf("%s", buf);  //debug
+        // buf[bytesRead]='\0'; //debug
+        // printf("%s", buf);  //debug
 
         // sending mail data
         for(int i=0; i<100; i++)        //added these 3 for senidng right data
@@ -219,31 +220,31 @@ int main(int argc, char *argv[])
                 break;
             }
         }
-        printf("%s", from);  //debug
+        // printf("%s", from);  //debug
         send(sockfd, from, strlen(from), 0);
 
-        printf("%s", to);  //debug
+        // printf("%s", to);  //debug
         send(sockfd, to, strlen(to), 0);
 
-        printf("%s", subject);  //debug
+        // printf("%s", subject);  //debug
         send(sockfd, subject, strlen(subject), 0);
         for(int i=0; i<lines; i++)
         {
-            printf("%s", body[i]);  //debug
+            // printf("%s", body[i]);  //debug
             send(sockfd, body[i], strlen(body[i]), 0);
         }
 
         // shud get 250
         bytesRead=recv(sockfd, buf, 100, 0);
-        buf[bytesRead]='\0'; //debug
-        printf("%s", buf);  //debug
+        // buf[bytesRead]='\0'; //debug
+        // printf("%s", buf);  //debug
 
         send(sockfd, "QUIT\r\n", 6, 0);
 
         // shud get 221
         bytesRead=recv(sockfd, buf, 100, 0);
-        buf[bytesRead]='\0'; //debug
-        printf("%s", buf);  //debug
+        // buf[bytesRead]='\0'; //debug
+        // printf("%s", buf);  //debug
 
         close(sockfd);
         break;
