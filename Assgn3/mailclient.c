@@ -125,8 +125,8 @@ int main(int argc, char *argv[])
             {
                 if(body[lines][j]=='\n')
                 {
-                    body[lines][j]='\r';
-                    body[lines][j+1]='\n';
+                    // body[lines][j]='\r';
+                    // body[lines][j+1]='\n';
                     body[lines][j+2]='\0';
                     break;
                 }
@@ -137,9 +137,10 @@ int main(int argc, char *argv[])
         }
         lines++;
 
-        //from                                                      // Add <> for email address in both MAIL FROM and RCPT TO and no space after :
-        strcpy(buf, "MAIL FROM: ");
+        //from                                                      // Add <> for email address in both MAIL FROM and RCPT TO and no space after :, check if fixed now!
+        strcpy(buf, "MAIL FROM:<");
         strcat(buf, from+6);
+        strcat(buf, ">\r\n\0");
 
         send(sockfd, buf, strlen(buf), 0);
 
@@ -147,8 +148,9 @@ int main(int argc, char *argv[])
         recv(sockfd, buf, 100, 0);
 
         //to
-        strcpy(buf, "RCPT TO: ");
+        strcpy(buf, "RCPT TO:<");
         strcat(buf, to+4);
+        strcat(buf, ">\r\n\0");
 
         send(sockfd, buf, strlen(buf), 0);
 
