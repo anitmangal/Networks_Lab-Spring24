@@ -61,6 +61,7 @@ int main(int argc, char * argv[]) {
                 send(newsockid, buf, strlen(buf), 0);
                 recv(newsockid, buf, 100, 0);
                 if (strncmp(buf, "MAIL FROM:", 10) == 0) {
+                    printf("Mail from\n"); //debug
                     int i = 11;
                     char from_user[100], from_domain[100];
                     while (buf[i] != '@') {
@@ -76,9 +77,10 @@ int main(int argc, char * argv[]) {
                     }
                     from_domain[j] = '\0';
                     strcpy(buf, "250 OK\r\n");
-                    send(newsockid, buf, strlen(buf), 0);
+                    send(newsockid, buf, strlen(buf), 0);           //???? need to do the same for RCPT TO
                     recv(newsockid, buf, 100, 0);
                     if (strncmp(buf, "RCPT TO:", 8) == 0) {
+                        printf("RCPT to\n"); //debug
                         i = 9;
                         char to_user[100], to_domain[100];
                         while (buf[i] != '@') {
@@ -107,6 +109,7 @@ int main(int argc, char * argv[]) {
                             f = fopen(to_user, "a");
                             recv(newsockid, buf, 100, 0);
                             if (strncmp(buf, "DATA", 4) == 0) {
+                                printf("DATA\n"); //debug
                                 strcpy(buf, "354 End data with <CR><LF>.<CR><LF>\r\n");
                                 send(newsockid, buf, strlen(buf), 0);
                                 char writebuf[100];
