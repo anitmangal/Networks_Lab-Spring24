@@ -87,13 +87,11 @@ int main(int argc, char *argv[])
                 int f=1;
                 for(int i=6;i<100;i++)
                 {
-                    if(i==6){
-                        if(from[i]=='@'||from[i]==' '){
-                            printf("Enter valid mail!\n");
-                            // close(sockfd);
-                            f=0;
-                            break;
-                        }
+                    if(from[i]=='@'&&from[i-1]==' '){
+                        printf("Enter valid mail!\n");
+                        // close(sockfd);
+                        f=0;
+                        break;
                     }
                     if(i==99){
                         printf("Enter valid mail!\n");
@@ -126,13 +124,11 @@ int main(int argc, char *argv[])
                 f=1;
                 for(int i=4;i<100;i++)
                 {
-                    if(i==4){
-                        if(to[i]=='@'||to[i]==' '){
-                            printf("Enter valid mail!\n");
-                            // close(sockfd);
-                            f=0;
-                            break;
-                        }
+                    if(to[i]=='@'&&to[i-1]==' '){
+                        printf("Enter valid mail!\n");
+                        // close(sockfd);
+                        f=0;
+                        break;
                     }
                     if(i==99){
                         printf("Enter valid mail!\n");
@@ -233,7 +229,13 @@ int main(int argc, char *argv[])
 
                         //from
                         strcpy(buf, "MAIL FROM:<");
-                        strcat(buf, from+6);
+                        int i;
+                        for(i=6;i<100;i++){
+                            if(from[i]!=' '){
+                                break;
+                            }
+                        }
+                        strcat(buf, from+i);
                         strcat(buf, ">\r\n\0");
                         send(sockfd, buf, strlen(buf), 0);
 
@@ -247,7 +249,12 @@ int main(int argc, char *argv[])
                         if(!strncmp(buf,"250",3)){
                             //to
                             strcpy(buf, "RCPT TO:<");
-                            strcat(buf, to+4);
+                            for(i=4;i<100;i++){
+                                if(to[i]!=' '){
+                                    break;
+                                }
+                            }
+                            strcat(buf, to+i);
                             strcat(buf, ">\r\n\0");
 
                             send(sockfd, buf, strlen(buf), 0);
