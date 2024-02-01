@@ -47,6 +47,142 @@ int main(int argc, char *argv[])
             }
             case 2:
             {
+
+                char *from, *to, *subject, *body[50];
+                from=(char *)malloc(100*sizeof(char));
+                to=(char *)malloc(100*sizeof(char));
+                subject=(char *)malloc(100*sizeof(char));
+
+                scanf("%c", &tmp);          // to consume the \n after the choice
+                printf("Enter the mail:\n");
+
+                getline(&from, &maxLen, stdin);
+                getline(&to, &maxLen, stdin);
+                getline(&subject, &maxLen, stdin);
+                int lines = 0;
+                while (lines<50)
+                {
+                    body[lines] = (char *)malloc(100 * sizeof(char));
+                    getline(&body[lines], &maxLen, stdin);
+                    for(int j=0; j<100; j++)
+                    {
+                        if(body[lines][j]=='\n')
+                        {
+                            body[lines][j]='\r';
+                            body[lines][j+1]='\n';
+                            body[lines][j+2]='\0';
+                            break;
+                        }
+                    }
+                    if (strcmp(body[lines], ".\r\n") == 0)
+                        break;
+                    lines++;
+                }
+                if(strncmp(from, "From: ", 6))
+                {
+                    printf("Enter valid mail!\n");
+                    // close(sockfd);
+                    break;
+                }
+                int f=1;
+                for(int i=6;i<100;i++)
+                {
+                    if(i==6){
+                        if(from[i]=='@'||from[i]==' '){
+                            printf("Enter valid mail!\n");
+                            // close(sockfd);
+                            f=0;
+                            break;
+                        }
+                    }
+                    if(i==99){
+                        printf("Enter valid mail!\n");
+                        // close(sockfd);
+                        f=0;
+                        break;
+                    }
+                    if(from[i]=='@' && from[i+1]!='\n'){
+                        break;
+                    }
+                }
+                if(f==0){
+                    break;
+                }
+                for(int i=0; i<100; i++)
+                {
+                    if(from[i]=='\n')
+                    {
+                        from[i]='\0';
+                        break;
+                    }
+                }
+
+                if(strncmp(to, "To: ", 4))
+                {
+                    printf("Enter valid mail!\n");
+                    // close(sockfd);
+                    break;
+                }
+                f=1;
+                for(int i=4;i<100;i++)
+                {
+                    if(i==4){
+                        if(to[i]=='@'||to[i]==' '){
+                            printf("Enter valid mail!\n");
+                            // close(sockfd);
+                            f=0;
+                            break;
+                        }
+                    }
+                    if(i==99){
+                        printf("Enter valid mail!\n");
+                        close(sockfd);
+                        f=0;
+                        break;
+                    }
+                    if(to[i]=='@' && to[i+1]!='\n'){
+                        break;
+                    }
+                }
+                if(f==0){
+                    break;
+                }
+                for(int i=0; i<100; i++)
+                {
+                    if(to[i]=='\n')
+                    {
+                        to[i]='\0';
+                        break;
+                    }
+                }
+
+                if(strncmp(subject, "Subject: ", 9))
+                {
+                    printf("Enter valid mail!\n");
+                    // close(sockfd);
+                    break;
+                }
+                for(int i=0; i<100; i++)
+                {
+                    if(subject[i]=='\n')
+                    {
+                        subject[i]='\0';
+                        break;
+                    }
+                }
+                if(lines==50){
+                    printf("Mail too long!\n");
+                    // close(sockfd);
+                    break;
+                }
+                if(strcmp(body[lines], ".\r\n")){
+                    printf("Enter valid mail!\n");
+                    // close(sockfd);
+                    break;
+                }
+                lines++;
+
+                //establishing connection as mail is in right format
                 if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
                 {
                     perror("Unable to create socket\n");
@@ -94,139 +230,6 @@ int main(int argc, char *argv[])
                         exit(0);
                     }
                     if(!strncmp(buf,"250",3)){
-                        char *from, *to, *subject, *body[50];
-                        from=(char *)malloc(100*sizeof(char));
-                        to=(char *)malloc(100*sizeof(char));
-                        subject=(char *)malloc(100*sizeof(char));
-
-                        scanf("%c", &tmp);          // to consume the \n after the choice
-                        printf("Enter the mail:\n");
-
-                        getline(&from, &maxLen, stdin);
-                        if(strncmp(from, "From: ", 6))
-                        {
-                            printf("Enter valid mail!\n");
-                            close(sockfd);
-                            break;
-                        }
-                        int f=1;
-                        for(int i=6;i<100;i++)
-                        {
-                            if(i==6){
-                                if(from[i]=='@'||from[i]==' '){
-                                    printf("Enter valid mail!\n");
-                                    close(sockfd);
-                                    f=0;
-                                    break;
-                                }
-                            }
-                            if(i==99){
-                                printf("Enter valid mail!\n");
-                                close(sockfd);
-                                f=0;
-                                break;
-                            }
-                            if(from[i]=='@' && from[i+1]!='\n'){
-                                break;
-                            }
-                        }
-                        if(f==0){
-                            break;
-                        }
-                        for(int i=0; i<100; i++)
-                        {
-                            if(from[i]=='\n')
-                            {
-                                from[i]='\0';
-                                break;
-                            }
-                        }
-
-                        getline(&to, &maxLen, stdin);
-                        if(strncmp(to, "To: ", 4))
-                        {
-                            printf("Enter valid mail!\n");
-                            close(sockfd);
-                            break;
-                        }
-                        f=1;
-                        for(int i=4;i<100;i++)
-                        {
-                            if(i==4){
-                                if(to[i]=='@'||to[i]==' '){
-                                    printf("Enter valid mail!\n");
-                                    close(sockfd);
-                                    f=0;
-                                    break;
-                                }
-                            }
-                            if(i==99){
-                                printf("Enter valid mail!\n");
-                                close(sockfd);
-                                f=0;
-                                break;
-                            }
-                            if(to[i]=='@' && to[i+1]!='\n'){
-                                break;
-                            }
-                        }
-                        if(f==0){
-                            break;
-                        }
-                        for(int i=0; i<100; i++)
-                        {
-                            if(to[i]=='\n')
-                            {
-                                to[i]='\0';
-                                break;
-                            }
-                        }
-
-                        getline(&subject, &maxLen, stdin);
-                        if(strncmp(subject, "Subject: ", 9))
-                        {
-                            printf("Enter valid mail!\n");
-                            close(sockfd);
-                            break;
-                        }
-                        for(int i=0; i<100; i++)
-                        {
-                            if(subject[i]=='\n')
-                            {
-                                subject[i]='\0';
-                                break;
-                            }
-                        }
-                        int lines = 0;
-                        while (lines<50)
-                        {
-                            body[lines] = (char *)malloc(100 * sizeof(char));
-                            getline(&body[lines], &maxLen, stdin);
-                            for(int j=0; j<100; j++)
-                            {
-                                if(body[lines][j]=='\n')
-                                {
-                                    body[lines][j]='\r';
-                                    body[lines][j+1]='\n';
-                                    body[lines][j+2]='\0';
-                                    break;
-                                }
-                            }
-                            if (strcmp(body[lines], ".\r\n") == 0)
-                                break;
-                            lines++;
-                        }
-                        if(lines==50){
-                            printf("Mail too long!\n");
-                            close(sockfd);
-                            break;
-                        }
-                        if(strcmp(body[lines], ".\r\n")){
-                            printf("Enter valid mail!\n");
-                            close(sockfd);
-                            break;
-                        }
-                        lines++;
 
                         //from
                         strcpy(buf, "MAIL FROM:<");
