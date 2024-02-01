@@ -75,7 +75,11 @@ int main(int argc, char * argv[]) {
                         j++;
                     }
                     from_domain[j] = '\0';
-                    strcpy(buf, "250 OK\r\n");
+                    strcpy(buf, "250 <");
+                    strcat(buf, from_user);
+                    strcat(buf, "@");
+                    strcat(buf, from_domain);
+                    strcat(buf, "> Sender ok\r\n");
                     send(newsockid, buf, strlen(buf), 0);
                     recv(newsockid, buf, 100, 0);
                     if (strncmp(buf, "RCPT TO:", 8) == 0) {
@@ -104,7 +108,9 @@ int main(int argc, char * argv[]) {
                         }
                         else {
                             fclose(f);
-                            strcpy(buf, "250 OK\r\n");
+                            strcpy(buf, "250 ");
+                            strcat(buf, to_user);
+                            strcat(buf, " Recipient ok\r\n");
                             send(newsockid, buf, strlen(buf), 0);
                             f = fopen(to_user, "a");
                             recv(newsockid, buf, 100, 0);
@@ -163,7 +169,7 @@ int main(int argc, char * argv[]) {
                                 }
 
                                 fclose(f);
-                                strcpy(buf, "250 OK\r\n");
+                                strcpy(buf, "250 OK Message accepted for delivery\r\n");
                                 send(newsockid, buf, strlen(buf), 0);
                                 recv(newsockid, buf, 100, 0);
                                 if (strncmp(buf, "QUIT", 4) == 0) {
