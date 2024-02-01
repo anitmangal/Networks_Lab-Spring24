@@ -136,7 +136,7 @@ int main(int argc, char *argv[])
                     }
                     if(i==99){
                         printf("Enter valid mail!\n");
-                        close(sockfd);
+                        // close(sockfd);
                         f=0;
                         break;
                     }
