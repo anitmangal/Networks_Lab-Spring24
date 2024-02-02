@@ -105,6 +105,7 @@ int main(int argc, char * argv[]) {
                             strcpy(buf, "550 No such user here\r\n");
                             send(newsockid, buf, strlen(buf), 0);
                             close(newsockid);
+                            exit(0);
                         }
                         else {
                             fclose(f);
