@@ -207,6 +207,8 @@ int main(int argc, char *argv[])
 
                 // shud get 220
                 bytesRead=recv(sockfd, buf, 100, 0);
+                // buf[bytesRead]='\0';        //to remove the garbage value at the end of buf
+                // printf("s: %s\n", buf);
                 if(bytesRead<0)
                 {
                     perror("Unable to read from socket\n");
@@ -214,12 +216,15 @@ int main(int argc, char *argv[])
                 }
                 if(!strncmp(buf, "220", 3)){
                     strcpy(buf,"HELO ");
-                    strcat(buf, local_ip);                  
+                    strcat(buf, local_ip); 
+                    strcat(buf, "\r\n");                 
 
                     send(sockfd, buf, strlen(buf), 0);
 
                     // shud get 250
                     bytesRead=recv(sockfd, buf, 100, 0);
+                    // buf[bytesRead]='\0';        //to remove the garbage value at the end of buf
+                    // printf("s: %s\n", buf);
                     if(bytesRead<0)
                     {
                         perror("Unable to read from socket\n");
@@ -241,6 +246,8 @@ int main(int argc, char *argv[])
 
                         // shud get 250
                         bytesRead=recv(sockfd, buf, 100, 0);
+                        // buf[bytesRead]='\0';        //to remove the garbage value at the end of buf
+                        // printf("s: %s\n", buf);
                         if(bytesRead<0)
                         {
                             perror("Unable to read from socket\n");
@@ -261,6 +268,8 @@ int main(int argc, char *argv[])
 
                             // shud get 250
                             bytesRead=recv(sockfd, buf, 100, 0);
+                            // buf[bytesRead]='\0';        //to remove the garbage value at the end of buf
+                            // printf("s: %s\n", buf);
                             if(bytesRead<0)
                             {
                                 perror("Unable to read from socket\n");
@@ -271,6 +280,8 @@ int main(int argc, char *argv[])
 
                                 // shud get 354
                                 bytesRead=recv(sockfd, buf, 100, 0);
+                                // buf[bytesRead]='\0';        //to remove the garbage value at the end of buf
+                                // printf("s: %s\n", buf);
                                 if(bytesRead<0)
                                 {
                                     perror("Unable to read from socket\n");
@@ -322,6 +333,8 @@ int main(int argc, char *argv[])
 
                                     // shud get 250
                                     bytesRead=recv(sockfd, buf, 100, 0);
+                                    // buf[bytesRead]='\0';        //to remove the garbage value at the end of buf
+                                    // printf("s: %s\n", buf);
                                     if(bytesRead<0)
                                     {
                                         perror("Unable to read from socket\n");
@@ -332,6 +345,8 @@ int main(int argc, char *argv[])
 
                                         // shud get 221
                                         bytesRead=recv(sockfd, buf, 100, 0);
+                                        // buf[bytesRead]='\0';        //to remove the garbage value at the end of buf
+                                        // printf("s: %s\n", buf);
                                         if(bytesRead<0)
                                         {
                                             perror("Unable to read from socket\n");
