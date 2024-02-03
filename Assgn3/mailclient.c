@@ -114,9 +114,13 @@ int main(int argc, char *argv[])
                                         bufInd++;
                                     }
 
-                                    char * mailbox[nummsg];
+                                    char * mailbox[nummsg+1];
                                     int flag = 1;
                                     
+
+                                    // RECONSIDER MESSAGE NUMBERS. CHECK RFCCCCC !!!!!!!!   !!! !! !! !! !!!!!!         !!!!!!!!!!!!!!
+
+
                                     for (int i = 1; i <= nummsg && flag; i++) {
 
                                         strcpy(buf, "LIST ");
@@ -133,6 +137,37 @@ int main(int argc, char *argv[])
                                                 msgNumber = 10*(msgNumber) + (int)(buf[bufInd]-'0');
                                                 bufInd++;
                                             }
+
+                                            int msgSize = 0;
+                                            bufInd++;
+                                            while (buf[bufInd] >= '0' && buf[bufInd] <= '9') {
+                                                msgSize = 10*(msgSize) + (int)(buf[bufInd]-'0');
+                                                bufInd++;
+                                            }
+
+                                            mailbox[msgNumber] = (char*)malloc((msgSize)*sizeof(char));
+
+                                            strcpy(buf, "RETR ");
+                                            sprintf(buf+strlen(buf), "%d", i);
+                                            strcat(buf, "\r\n");
+                                            send(sockfd, buf, MAXBUFFLEN, 0);
+
+                                            int msgind = 0, recvind = 0;
+                                            int recvbytes = recv(sockfd, buf, MAXBUFFLEN, 0);
+                                            while(1) {
+                                                while (recvind < recvbytes) {
+                                                    mailbox[msgNumber][msgind] = buf[recvind];
+                                                    if (msgind >= 5 && mailbox[msgNumber][msgind-4] == '\r' && mailbox[msgNumber][msgind-3] == '\n' && mailbox[msgNumber][msgind-2] == '.' && mailbox[msgNumber][msgind-1] == '\r' && mailbox[msgNumber][msgind] == '\n') break;
+                                                    msgind++;
+                                                    recvind++;
+                                                }
+                                                if (recvind == recvbytes) {
+                                                    recvbytes = recv(sockfd, buf, MAXBUFFLEN, 0);
+                                                    recvind = 0;
+                                                }
+                                                else break;
+                                            }
+
 
                                         }
                                         else {
