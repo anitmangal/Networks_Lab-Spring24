@@ -9,11 +9,36 @@
 #include <fcntl.h>
 #include <time.h>
 
+
+// Function to receive exactly 1 message from socket
+void myrecv(int sockid, char * buf, int len) {
+    char msgbuf[len];
+    int msgind = 0, recvbytes = 0, recv_ind = 0;
+    recvbytes = recv(sockid, buf, len, 0);
+    while(1) {
+        while (recv_ind < recvbytes && buf[recv_ind] != '\r') {
+            msgbuf[msgind] = buf[recv_ind];
+            msgind++;
+            recv_ind++;
+        }
+        if (recv_ind == recvbytes) {
+            recvbytes = recv(sockid, buf, len, 0);
+            recv_ind = 0;
+        }
+        else {
+            msgbuf[msgind] = '\0';
+            break;
+        }
+    }
+    strcpy(buf, msgbuf);
+}
+
 int main(int argc, char * argv[]) {
     if (argc < 2) {
-        printf("Usage: ./smtpmail <port>\n");
+        printf("Usage: ./%s <port>\n", argv[0]);
         exit(0);
     }
+    // Create socket and bind
     int sockid = socket(AF_INET, SOCK_STREAM, 0);
     if (sockid < 0) {
         perror("Unable to create socket\n");
@@ -28,14 +53,15 @@ int main(int argc, char * argv[]) {
         exit(0);
     }
 
-
+    // Listen for incoming connections
     listen(sockid, 5);
     int newsockid;
     struct sockaddr_in cli_addr;
+        int clilen = sizeof(cli_addr);
 
     // Iterative server
     while(1) {
-        int clilen = sizeof(cli_addr);
+        // Accept connection and fork
         newsockid = accept(sockid, (struct sockaddr *)&cli_addr, &clilen);
         if (newsockid < 0) {
             perror("Unable to accept\n");
@@ -49,20 +75,26 @@ int main(int argc, char * argv[]) {
         if (pid == 0) {
             close(sockid);
             char buf[100];
+
             strcpy(buf, "220 [");
             strcat(buf, inet_ntoa(cli_addr.sin_addr));
             strcat(buf, "] Service ready\r\n");
-            send(newsockid, buf, strlen(buf), 0);
-            recv(newsockid, buf, 100, 0);
+            send(newsockid, buf, strlen(buf), 0);                   // Send welcome message
+
+            myrecv(newsockid, buf, 100);                            // Receive HELO
+
             if (strncmp(buf, "HELO", 4) == 0) {
+
                 strcpy(buf, "250 OK Hello ");
                 strcat(buf, inet_ntoa(cli_addr.sin_addr));
                 strcat(buf, " Pleased to meet you\r\n");
-                send(newsockid, buf, strlen(buf), 0);
-                recv(newsockid, buf, 100, 0);
+                send(newsockid, buf, strlen(buf), 0);               // Send OK
+
+                myrecv(newsockid, buf, 100);                        // Receive MAIL FROM
+
                 if (strncmp(buf, "MAIL FROM:", 10) == 0) {
                     int i = 11;
-                    char from_user[100], from_domain[100];
+                    char from_user[100], from_domain[100];          // Split email into user and domain
                     while (buf[i] != '@') {
                         from_user[i-11] = buf[i];
                         i++;
@@ -75,16 +107,19 @@ int main(int argc, char * argv[]) {
                         j++;
                     }
                     from_domain[j] = '\0';
+
                     strcpy(buf, "250 <");
                     strcat(buf, from_user);
                     strcat(buf, "@");
                     strcat(buf, from_domain);
                     strcat(buf, "> Sender ok\r\n");
-                    send(newsockid, buf, strlen(buf), 0);
-                    recv(newsockid, buf, 100, 0);
+                    send(newsockid, buf, strlen(buf), 0);           // Send OK
+
+                    myrecv(newsockid, buf, 100);                    // Receive RCPT TO
+
                     if (strncmp(buf, "RCPT TO:", 8) == 0) {
                         i = 9;
-                        char to_user[100], to_domain[100];
+                        char to_user[100], to_domain[100];          // Split email into user and domain
                         while (buf[i] != '@') {
                             to_user[i-9] = buf[i];
                             i++;
@@ -100,26 +135,32 @@ int main(int argc, char * argv[]) {
                         char filepath[100];
                         strcpy(filepath, to_user);
                         strcat(to_user, "/mymailbox");
-                        FILE * f = fopen(filepath, "r");
+                        FILE * f = fopen(filepath, "r");            // Check if user exists
                         if (f == NULL) {
                             strcpy(buf, "550 No such user here\r\n");
-                            send(newsockid, buf, strlen(buf), 0);
+                            send(newsockid, buf, strlen(buf), 0);   // Send error message and close connection
                             close(newsockid);
                             exit(0);
                         }
                         else {
                             fclose(f);
+
                             strcpy(buf, "250 ");
                             strcat(buf, to_user);
                             strcat(buf, " Recipient ok\r\n");
-                            send(newsockid, buf, strlen(buf), 0);
+                            send(newsockid, buf, strlen(buf), 0);       // Send OK
+
                             f = fopen(to_user, "a");
-                            recv(newsockid, buf, 100, 0);
+
+                            myrecv(newsockid, buf, 100);                // Receive DATA
+                            
                             if (strncmp(buf, "DATA", 4) == 0) {
                                 strcpy(buf, "354 End data with <CR><LF>.<CR><LF>\r\n");
-                                send(newsockid, buf, strlen(buf), 0);
+                                send(newsockid, buf, strlen(buf), 0);   // Send 354
+
+                                // Receive From, To and Subject and write to file
                                 char writebuf[100];
-                                int write_ind = 0, recv_ind = 0, cnt = 0;
+                                int write_ind = 0, cnt = 0, recv_ind = 0;
                                 int recvbytes = recv(newsockid, buf, 100, 0);
                                 while (cnt < 3) {
                                     while (recv_ind < recvbytes && buf[recv_ind] != '\r') {
@@ -140,6 +181,7 @@ int main(int argc, char * argv[]) {
                                     }
                                 }
 
+                                // Write Received time to file
                                 strcpy(writebuf, "Received: ");
                                 time_t t = time(NULL);
                                 struct tm * tm = localtime(&t);
@@ -148,6 +190,7 @@ int main(int argc, char * argv[]) {
                                 strcat(writebuf, timebuf);
                                 fprintf(f, "%s\n", writebuf);
 
+                                // Receive and write message to file until <CR><LF>.<CR><LF>
                                 while(1) {
                                     while (recv_ind < recvbytes && buf[recv_ind] != '\r') {
                                         writebuf[write_ind] = buf[recv_ind];
@@ -171,13 +214,16 @@ int main(int argc, char * argv[]) {
 
                                 fclose(f);
                                 strcpy(buf, "250 OK Message accepted for delivery\r\n");
-                                send(newsockid, buf, strlen(buf), 0);
-                                recv(newsockid, buf, 100, 0);
+                                send(newsockid, buf, strlen(buf), 0);           // Send OK
+
+                                myrecv(newsockid, buf, 100);                    // Receive QUIT
                                 if (strncmp(buf, "QUIT", 4) == 0) {
+
                                     strcpy(buf, "221 [");
                                     strcat(buf, inet_ntoa(cli_addr.sin_addr));
                                     strcat(buf, "] Service closing transmission channel\r\n");
-                                    send(newsockid, buf, strlen(buf), 0);
+                                    send(newsockid, buf, strlen(buf), 0);       // Send closing message
+
                                     close(newsockid);
                                     exit(0);
                                 }
@@ -188,7 +234,7 @@ int main(int argc, char * argv[]) {
             }
         }
         else {
-            close(newsockid);
+            close(newsockid);           // Parent closes newsockid
         }
     }
 
