@@ -57,7 +57,7 @@ int main(int argc, char * argv[]) {
     listen(sockid, 5);
     int newsockid;
     struct sockaddr_in cli_addr;
-        int clilen = sizeof(cli_addr);
+    int clilen = sizeof(cli_addr);
 
     // Iterative server
     while(1) {
@@ -224,7 +224,6 @@ int main(int argc, char * argv[]) {
                                     strcat(buf, "] Service closing transmission channel\r\n");
                                     send(newsockid, buf, strlen(buf), 0);       // Send closing message
 
-                                    close(newsockid);
                                     exit(0);
                                 }
                             }

@@ -8,6 +8,31 @@
 #include <arpa/inet.h>
 #include <fcntl.h>
 
+#define MAXBUFFLEN 512
+
+// Function to receive exactly 1 message from socket
+void myrecv(int sockid, char * buf, int len) {
+    char msgbuf[len];
+    int msgind = 0, recvbytes = 0, recv_ind = 0;
+    recvbytes = recv(sockid, buf, len, 0);
+    while(1) {
+        while (recv_ind < recvbytes && buf[recv_ind] != '\r') {
+            msgbuf[msgind] = buf[recv_ind];
+            msgind++;
+            recv_ind++;
+        }
+        if (recv_ind == recvbytes) {
+            recvbytes = recv(sockid, buf, len, 0);
+            recv_ind = 0;
+        }
+        else {
+            msgbuf[msgind] = '\0';
+            break;
+        }
+    }
+    strcpy(buf, msgbuf);
+}
+
 int main(int argc, char *argv[])
 {
     if (argc < 4)
@@ -18,12 +43,10 @@ int main(int argc, char *argv[])
     int sockfd;
     struct sockaddr_in serv_addr, local_addr;
     socklen_t local_addr_len = sizeof(local_addr);
-    char buf[100];
+    char buf[MAXBUFFLEN];
     int bytesRead;
-    size_t maxLen=100;
-    char *username, *password;
-    username=(char *)malloc(100*sizeof(char));
-    password=(char *)malloc(100*sizeof(char));
+    size_t maxLen = MAXBUFFLEN;
+    char username[100], password[100];
 
     // ask for username and password
     printf("Username: ");
@@ -43,15 +66,102 @@ int main(int argc, char *argv[])
         {
             case 1:
             {
-                break;
+                serv_addr.sin_family = AF_INET;
+                inet_aton(argv[1], &serv_addr.sin_addr);
+                serv_addr.sin_port = htons(atoi(argv[3]));
+                if (connect(sockfd, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0) {
+                    perror("Unable to connect to server.\n");
+                    exit(0);
+                }
+                myrecv(sockfd, buf, MAXBUFFLEN);
+                if (strncmp(buf, "+OK", 3) == 0) {
+
+                    strcpy(buf, "USER ");
+                    strcat(buf, username);
+                    strcat(buf, "\r\n");
+                    send(sockfd, buf, MAXBUFFLEN, 0);
+                    
+                    myrecv(sockfd, buf, MAXBUFFLEN);
+
+                    if (strncmp(buf, "+OK", 3) == 0) {
+
+                        strcpy(buf, "PASS ");
+                        strcat(buf, password);
+                        strcat(buf, "\r\n");
+                        send(sockfd, buf, MAXBUFFLEN, 0);
+
+                        myrecv(sockfd, buf, MAXBUFFLEN);
+
+                        if (strncmp(buf, "+OK", 3) == 0) {
+
+                            while (1) {
+                                strcpy(buf, "STAT\r\n");
+                                send(sockfd, buf, MAXBUFFLEN, 0);
+
+                                myrecv(sockfd, buf, MAXBUFFLEN);
+
+                                if (strncmp(buf, "+OK", 3) == 0) {
+                                    int nummsg = 0, bufInd = 4;
+                                    while (buf[bufInd] >= '0' && buf[bufInd] <= '9') {
+                                        nummsg = 10*(nummsg) + (int)(buf[bufInd]-'0');
+                                        bufInd++;
+                                    }
+
+                                    int sizemaildrop = 0;
+                                    bufInd++;
+                                    while (buf[bufInd] >= '0' && buf[bufInd] <= '9') {
+                                        sizemaildrop = 10*(sizemaildrop) + (int)(buf[bufInd]-'0');
+                                        bufInd++;
+                                    }
+
+                                    char * mailbox[nummsg];
+                                    int flag = 1;
+                                    
+                                    for (int i = 1; i <= nummsg && flag; i++) {
+
+                                        strcpy(buf, "LIST ");
+                                        sprintf(buf+strlen(buf), "%d", i);
+                                        strcat(buf, "\r\n");
+                                        send(sockfd, buf, MAXBUFFLEN, 0);
+
+                                        myrecv(sockfd, buf, MAXBUFFLEN);
+
+                                        if (strncmp(buf, "+OK", 3) == 0) {
+                                            int msgNumber = 0;
+                                            bufInd = 4;
+                                            while (buf[bufInd] >= '0' && buf[bufInd] <= '9') {
+                                                msgNumber = 10*(msgNumber) + (int)(buf[bufInd]-'0');
+                                                bufInd++;
+                                            }
+
+                                        }
+                                        else {
+                                            perror("Error in retrieving scan listing for a message.\n");
+                                            flag = 0;
+                                        }
+                                    }
+                                }
+                                else {
+                                    perror("Error in STAT.\n");
+                                }
+                            }
+                        }
+                        else {
+                            perror("Password authentication error.\n");
+                        }
+                    }
+                    else {
+                        perror("Username authentication error.\n");
+                    }
+                }
+                else {
+                    perror("Error occured after connection.\n");
+                }
             }
             case 2:
             {
 
-                char *from, *to, *subject, *body[50];
-                from=(char *)malloc(100*sizeof(char));
-                to=(char *)malloc(100*sizeof(char));
-                subject=(char *)malloc(100*sizeof(char));
+                char from[100], to[100], subject[100], body[50][100];
 
                 scanf("%c", &tmp);          // to consume the \n after the choice
                 printf("Enter the mail:\n");
@@ -62,7 +172,6 @@ int main(int argc, char *argv[])
                 int lines = 0;
                 while (lines<50)
                 {
-                    body[lines] = (char *)malloc(100 * sizeof(char));
                     getline(&body[lines], &maxLen, stdin);
                     for(int j=0; j<100; j++)
                     {
@@ -206,7 +315,7 @@ int main(int argc, char *argv[])
                 inet_ntop(AF_INET, &local_addr.sin_addr, local_ip, sizeof(local_ip));
 
                 // shud get 220
-                bytesRead=recv(sockfd, buf, 100, 0);
+                bytesRead=recv(sockfd, buf, MAXBUFFLEN, 0);
                 // buf[bytesRead]='\0';        //to remove the garbage value at the end of buf
                 // printf("s: %s\n", buf);
                 if(bytesRead<0)
@@ -222,7 +331,7 @@ int main(int argc, char *argv[])
                     send(sockfd, buf, strlen(buf), 0);
 
                     // shud get 250
-                    bytesRead=recv(sockfd, buf, 100, 0);
+                    bytesRead=recv(sockfd, buf, MAXBUFFLEN, 0);
                     // buf[bytesRead]='\0';        //to remove the garbage value at the end of buf
                     // printf("s: %s\n", buf);
                     if(bytesRead<0)
@@ -245,7 +354,7 @@ int main(int argc, char *argv[])
                         send(sockfd, buf, strlen(buf), 0);
 
                         // shud get 250
-                        bytesRead=recv(sockfd, buf, 100, 0);
+                        bytesRead=recv(sockfd, buf, MAXBUFFLEN, 0);
                         // buf[bytesRead]='\0';        //to remove the garbage value at the end of buf
                         // printf("s: %s\n", buf);
                         if(bytesRead<0)
@@ -267,7 +376,7 @@ int main(int argc, char *argv[])
                             send(sockfd, buf, strlen(buf), 0);
 
                             // shud get 250
-                            bytesRead=recv(sockfd, buf, 100, 0);
+                            bytesRead=recv(sockfd, buf, MAXBUFFLEN, 0);
                             // buf[bytesRead]='\0';        //to remove the garbage value at the end of buf
                             // printf("s: %s\n", buf);
                             if(bytesRead<0)
@@ -279,7 +388,7 @@ int main(int argc, char *argv[])
                                 send(sockfd, "DATA\r\n", 6, 0);
 
                                 // shud get 354
-                                bytesRead=recv(sockfd, buf, 100, 0);
+                                bytesRead=recv(sockfd, buf, MAXBUFFLEN, 0);
                                 // buf[bytesRead]='\0';        //to remove the garbage value at the end of buf
                                 // printf("s: %s\n", buf);
                                 if(bytesRead<0)
@@ -332,7 +441,7 @@ int main(int argc, char *argv[])
                                     }
 
                                     // shud get 250
-                                    bytesRead=recv(sockfd, buf, 100, 0);
+                                    bytesRead=recv(sockfd, buf, MAXBUFFLEN, 0);
                                     // buf[bytesRead]='\0';        //to remove the garbage value at the end of buf
                                     // printf("s: %s\n", buf);
                                     if(bytesRead<0)
@@ -344,7 +453,7 @@ int main(int argc, char *argv[])
                                         send(sockfd, "QUIT\r\n", 6, 0);
 
                                         // shud get 221
-                                        bytesRead=recv(sockfd, buf, 100, 0);
+                                        bytesRead=recv(sockfd, buf, MAXBUFFLEN, 0);
                                         // buf[bytesRead]='\0';        //to remove the garbage value at the end of buf
                                         // printf("s: %s\n", buf);
                                         if(bytesRead<0)
