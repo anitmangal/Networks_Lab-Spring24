@@ -7,6 +7,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <fcntl.h>
+#include <assert.h>
 
 #define MAXBUFFLEN 512
 
@@ -64,8 +65,8 @@ int main(int argc, char *argv[])
         scanf("%d", &choice);
         switch (choice)
         {
-            case 1:
-            {
+            case 1: {
+                // Make a TCP connection with POP3 server
                 serv_addr.sin_family = AF_INET;
                 inet_aton(argv[1], &serv_addr.sin_addr);
                 serv_addr.sin_port = htons(atoi(argv[3]));
@@ -73,34 +74,37 @@ int main(int argc, char *argv[])
                     perror("Unable to connect to server.\n");
                     exit(0);
                 }
-                myrecv(sockfd, buf, MAXBUFFLEN);
+                myrecv(sockfd, buf, MAXBUFFLEN);            // Receive connection response
                 if (strncmp(buf, "+OK", 3) == 0) {
-
+                    // AUTHORIZATION state
+                    // Send USER command
                     strcpy(buf, "USER ");
                     strcat(buf, username);
                     strcat(buf, "\r\n");
                     send(sockfd, buf, MAXBUFFLEN, 0);
                     
-                    myrecv(sockfd, buf, MAXBUFFLEN);
+                    myrecv(sockfd, buf, MAXBUFFLEN);      // Receive response to USER
 
                     if (strncmp(buf, "+OK", 3) == 0) {
-
+                        // Send PASS command
                         strcpy(buf, "PASS ");
                         strcat(buf, password);
                         strcat(buf, "\r\n");
                         send(sockfd, buf, MAXBUFFLEN, 0);
 
-                        myrecv(sockfd, buf, MAXBUFFLEN);
+                        myrecv(sockfd, buf, MAXBUFFLEN);        // Receive response to PASS
 
                         if (strncmp(buf, "+OK", 3) == 0) {
-
+                            // TRANSACTION state
                             while (1) {
+                                // Send STAT command
                                 strcpy(buf, "STAT\r\n");
                                 send(sockfd, buf, MAXBUFFLEN, 0);
 
-                                myrecv(sockfd, buf, MAXBUFFLEN);
+                                myrecv(sockfd, buf, MAXBUFFLEN);        // Receive response to STAT
 
                                 if (strncmp(buf, "+OK", 3) == 0) {
+                                    // Find number of messages and size of maildrop through response
                                     int nummsg = 0, bufInd = 4;
                                     while (buf[bufInd] >= '0' && buf[bufInd] <= '9') {
                                         nummsg = 10*(nummsg) + (int)(buf[bufInd]-'0');
@@ -114,66 +118,207 @@ int main(int argc, char *argv[])
                                         bufInd++;
                                     }
 
-                                    char * mailbox[nummsg+1];
-                                    int flag = 1;
-                                    
 
-                                    // RECONSIDER MESSAGE NUMBERS. CHECK RFCCCCC !!!!!!!!   !!! !! !! !! !!!!!!         !!!!!!!!!!!!!!
+                                    char * mailbox[nummsg];             // To store the mailbox mail-wise
+                                    int msgmap[nummsg];                 // To map index of local mailbox to actual message number sent by server
+                                    // Send LIST command
+                                    strcpy(buf, "LIST\r\n");
+                                    send(sockfd, buf, MAXBUFFLEN, 0);
 
-
-                                    for (int i = 1; i <= nummsg && flag; i++) {
-
-                                        strcpy(buf, "LIST ");
-                                        sprintf(buf+strlen(buf), "%d", i);
-                                        strcat(buf, "\r\n");
-                                        send(sockfd, buf, MAXBUFFLEN, 0);
-
-                                        myrecv(sockfd, buf, MAXBUFFLEN);
-
-                                        if (strncmp(buf, "+OK", 3) == 0) {
-                                            int msgNumber = 0;
-                                            bufInd = 4;
-                                            while (buf[bufInd] >= '0' && buf[bufInd] <= '9') {
-                                                msgNumber = 10*(msgNumber) + (int)(buf[bufInd]-'0');
-                                                bufInd++;
+                                    // Get response from server
+                                    char msgbuf[MAXBUFFLEN];
+                                    int msg_ind = 0, recv_ind = 0;
+                                    int recvbytes = recv(sockfd, buf, MAXBUFFLEN, 0);
+                                    while(1) {
+                                        while(recv_ind < recvbytes && buf[recv_ind] != '\r') {
+                                            msgbuf[msg_ind] = buf[recv_ind];
+                                            msg_ind++;
+                                            recv_ind++;
+                                        }
+                                        if(recv_ind == recvbytes) {
+                                            recvbytes = recv(sockfd, buf, MAXBUFFLEN, 0);
+                                            recv_ind = 0;
+                                        }
+                                        else {
+                                            msgbuf[msg_ind] = '\0';
+                                            recv_ind += 2;
+                                            msg_ind = 0;
+                                            break;
+                                        }
+                                    }
+                                    if (strncmp(msgbuf, "+OK", 3) == 0) {
+                                        // Response OK, get each line giving scan listing of each message
+                                        int cnt = 0;
+                                        while(1) {
+                                            while (recv_ind < recvbytes && buf[recv_ind] != '\r') {
+                                                msgbuf[msg_ind] = buf[recv_ind];
+                                                msg_ind++;
+                                                recv_ind++;
                                             }
-
-                                            int msgSize = 0;
-                                            bufInd++;
-                                            while (buf[bufInd] >= '0' && buf[bufInd] <= '9') {
-                                                msgSize = 10*(msgSize) + (int)(buf[bufInd]-'0');
-                                                bufInd++;
+                                            if (recv_ind >= recvbytes) {
+                                                recvbytes = recv(sockfd, buf, MAXBUFFLEN, 0);
+                                                recv_ind = 0;
                                             }
+                                            else {
+                                                msgbuf[msg_ind] = '\0';
+                                                recv_ind += 2;
+                                                msg_ind = 0;
+                                                if (strcmp(msgbuf, ".") == 0 || cnt >= nummsg) {
+                                                    // .<CR><LF> means end of multi-line response
+                                                    assert(cnt == nummsg);
+                                                    break;
+                                                }
+                                                else {
+                                                    // One line received, get message number and message size from that line.
+                                                    int msgNumber = 0;
+                                                    while (msgbuf[msg_ind] >= '0' && msgbuf[msg_ind] <= '9') {
+                                                        msgNumber = 10*msgNumber + (int)(msgbuf[msg_ind]-'0');
+                                                        msg_ind++;
+                                                    }
+                                                    int msgSize = 0;
+                                                    msg_ind++;
+                                                    while (msgbuf[msg_ind] >= '0' && msgbuf[msg_ind] <= '9') {
+                                                        msgSize = 10*msgSize + (int)(msgbuf[msg_ind]-'0');
+                                                        msg_ind++;
+                                                    }
 
-                                            mailbox[msgNumber] = (char*)malloc((msgSize)*sizeof(char));
+                                                    msgmap[cnt] = msgNumber;                // Map message number
+                                                    mailbox[cnt] = (char*)malloc(msgSize*sizeof(char));     // Allocate space for message
+                                                    cnt++;
+                                                }
+                                            }
+                                        }
 
+                                        // Print list of messages in tabular form
+                                        printf("%-7s\t%-40s\t%-14s\t%-100s\n", "Sl. No.", "Sender's email id", "Time received", "Subject");
+                                        int flag = 1;       // To record if any error occurs while retrieving messages.
+
+                                        for (cnt = 0; cnt < nummsg; cnt++) {
+                                            // Send RETR <msgnumber> command
                                             strcpy(buf, "RETR ");
-                                            sprintf(buf+strlen(buf), "%d", i);
+                                            sprintf(buf+strlen(buf), "%d", msgmap[cnt]);
                                             strcat(buf, "\r\n");
                                             send(sockfd, buf, MAXBUFFLEN, 0);
 
-                                            int msgind = 0, recvind = 0;
-                                            int recvbytes = recv(sockfd, buf, MAXBUFFLEN, 0);
+                                            // Get response from server
+                                            msg_ind = 0, recv_ind = 0;
+                                            recvbytes = recv(sockfd, buf, MAXBUFFLEN, 0);
                                             while(1) {
-                                                while (recvind < recvbytes) {
-                                                    mailbox[msgNumber][msgind] = buf[recvind];
-                                                    if (msgind >= 5 && mailbox[msgNumber][msgind-4] == '\r' && mailbox[msgNumber][msgind-3] == '\n' && mailbox[msgNumber][msgind-2] == '.' && mailbox[msgNumber][msgind-1] == '\r' && mailbox[msgNumber][msgind] == '\n') break;
-                                                    msgind++;
-                                                    recvind++;
+                                                while (recv_ind < recvbytes && buf[recv_ind] != '\r') {
+                                                    msgbuf[msg_ind] = buf[recv_ind];
+                                                    msg_ind++;
+                                                    recv_ind++;
                                                 }
-                                                if (recvind == recvbytes) {
+                                                if (recv_ind == recvbytes) {
                                                     recvbytes = recv(sockfd, buf, MAXBUFFLEN, 0);
-                                                    recvind = 0;
+                                                    recv_ind = 0;
                                                 }
-                                                else break;
+                                                else {
+                                                    msgbuf[msg_ind] = '\0';
+                                                    msg_ind = 0;
+                                                    recv_ind += 2;
+                                                    break;
+                                                }
                                             }
+                                            if (strncmp(msgbuf, "+OK", 3) == 0) {
+                                                // Response OK, get message until <CR><LF>.<CR><LF>
+                                                while(1) {
+                                                    while(recv_ind < recvbytes) {
+                                                        mailbox[cnt][msg_ind] = buf[recv_ind];
+                                                        msg_ind++;
+                                                        recv_ind++;
+                                                    }
+                                                    if (msg_ind >= 5 && strncmp(mailbox[cnt]+msg_ind-5, "\r\n.\r\n", 5)==0) break;
+                                                    recvbytes = recv(sockfd, buf, MAXBUFFLEN, 0);
+                                                    recv_ind = 0;
+                                                }
 
+                                                // Split received message and extract relevant fields for list
+                                                char sno[10], from[100], rec[100], subject[101];
+                                                sprintf(sno, "%d", msgmap[cnt]);
+                                                
+                                                char * token = strtok(mailbox[cnt], "\r\n");
+                                                msg_ind = 0;
+                                                while (token[msg_ind] != ' ') msg_ind++;
+                                                strcpy(from, token+msg_ind+1);
 
+                                                token = strtok(NULL, "\r\n");
+                                                token = strtok(NULL, "\r\n");
+                                                msg_ind = 0;
+                                                while (token[msg_ind] != ' ') msg_ind++;
+                                                strcpy(subject, token+msg_ind+1);
+
+                                                token = strtok(NULL, "\r\n");
+                                                msg_ind = 0;
+                                                while (token[msg_ind] != ' ') msg_ind++;
+                                                strcpy(rec, token+msg_ind+1);
+
+                                                printf("%-7s\t%-40s\t%-14s\t%-100s\n", sno, from, rec, subject);        // Print 1 item of list
+                                            }
+                                            else {
+                                                perror("Error in RETR");
+                                                flag = 0;
+                                                break;
+                                            }
+                                        }
+
+                                        if (flag == 0) break;       // Some message caused an error in RETR, go to main menu
+
+                                        // Get choice of mail to see
+                                        printf("Enter mail no. to see: ");
+                                        int mail_choice;
+                                        while(1) {
+                                            scanf("%d", &mail_choice);
+                                            if (mail_choice == -1) {
+                                                break;
+                                            }
+                                            else {
+                                                for (cnt = 0; cnt < nummsg; cnt++) if (msgmap[cnt] == mail_choice) break;
+                                                if (cnt < nummsg) {
+                                                    break;
+                                                }
+                                                else {
+                                                    perror("Mail no. out of range, give again.");
+                                                }
+                                            }
+                                        }
+                                        if (mail_choice >= 0) {
+                                            // Valid mail chosen, print the message until . is seen
+                                            char * token = strtok(mailbox[mail_choice], "\r\n");
+                                            while (strcmp(token, ".") != 0) printf("%s\n", token);
+                                            char c = getchar();     // Wait for response
+                                            if (c == 'd') {
+                                                // Send DELE <msgnumber> command
+                                                strcpy(buf, "DELE ");
+                                                sprintf(buf+strlen(buf), "%d", mail_choice);
+                                                strcat(buf, "\r\n");
+                                                send(sockfd, buf, MAXBUFFLEN, 0);
+
+                                                myrecv(sockfd, buf, MAXBUFFLEN);        // Receive response from server
+
+                                                if (strncmp(buf, "+OK", 3) == 0) printf("Deleted succesfully.\n");
+                                                else perror("Error in deleting email.\n");
+                                            }
                                         }
                                         else {
-                                            perror("Error in retrieving scan listing for a message.\n");
-                                            flag = 0;
+                                            // Mail choice = -1, send QUIT command
+                                            strcpy(buf, "QUIT\r\n");
+                                            send(sockfd, buf, MAXBUFFLEN, 0);
+
+                                            myrecv(sockfd, buf, MAXBUFFLEN);            // Receive response from server
+
+                                            // UPDATE state
+                                            if (strncmp(buf, "+OK", 3) == 0) {
+                                                printf("Connection closed.\n");
+                                            }
+                                            else {
+                                                perror("Unable to delete some messages.\n");
+                                            }
+                                            break;                                      // UPDATE state ended
                                         }
+                                    }
+                                    else {
+                                        perror("Error in LIST.\n");
                                     }
                                 }
                                 else {
@@ -196,7 +341,10 @@ int main(int argc, char *argv[])
             case 2:
             {
 
-                char from[100], to[100], subject[100], body[50][100];
+                char *from, *to, *subject, *body[50];
+                from = (char*)malloc(100*sizeof(char));
+                to = (char*)malloc(100*sizeof(char));
+                subject = (char*)malloc(100*sizeof(char));
 
                 scanf("%c", &tmp);          // to consume the \n after the choice
                 printf("Enter the mail:\n");
@@ -207,6 +355,7 @@ int main(int argc, char *argv[])
                 int lines = 0;
                 while (lines<50)
                 {
+                    body[lines] = (char*)malloc(100*sizeof(char));
                     getline(&body[lines], &maxLen, stdin);
                     for(int j=0; j<100; j++)
                     {
