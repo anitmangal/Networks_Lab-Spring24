@@ -195,7 +195,7 @@ int main(int argc, char *argv[])
                                         }
 
                                         // Print list of messages in tabular form
-                                        printf("%-7s\t%-40s\t%-14s\t%-100s\n", "Sl. No.", "Sender's email id", "Time received", "Subject");
+                                        printf("%-10s\t%-40s\t%-14s\t%-100s\n", "Sl. No.", "Sender's email id", "Time received", "Subject");
                                         int flag = 1;       // To record if any error occurs while retrieving messages.
 
                                         for (cnt = 0; cnt < nummsg; cnt++) {
@@ -258,7 +258,7 @@ int main(int argc, char *argv[])
                                                 while (token[msg_ind] != ' ') msg_ind++;
                                                 strcpy(rec, token+msg_ind+1);
 
-                                                printf("%-7s\t%-40s\t%-14s\t%-100s\n", sno, from, rec, subject);        // Print 1 item of list
+                                                printf("%-10s\t%-40s\t%-14s\t%-100s\n", sno, from, rec, subject);        // Print 1 item of list
                                             }
                                             else {
                                                 perror("Error in RETR");
