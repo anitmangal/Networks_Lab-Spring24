@@ -298,14 +298,24 @@ int main(int argc, char *argv[])
                                                     break;
                                                 }
                                                 else {
-                                                    perror("Mail no. out of range, give again.");
+                                                    // perror("Mail no. out of range, give again.");
+                                                    printf("Mail no. out of range, give again: ");
                                                 }
                                             }
                                         }
                                         if (mail_choice >= 0) {
                                             // Valid mail chosen, print the message until . is seen
-                                            char * token = strtok(mailbox[mail_choice], "\r\n");
-                                            while (strcmp(token, ".") != 0) printf("%s\n", token);
+                                            // printf("%s", mailbox[cnt]);     //debug
+                                            // int i;
+                                            // while(mailbox[cnt][i] != '.' && mailbox[cnt][i+1] != '\r' && mailbox[cnt][i+2] != '\n')
+                                            // {
+                                            //     if(mailbox[cnt][i]!='\r'){
+                                            //         printf("%c", mailbox[cnt][i]);
+                                            //     }
+                                            //     i++;
+                                            // }
+                                            // char * token = strtok(mailbox[cnt], "\r\n");        // changed mail_choice to cnt
+                                            // while (strcmp(token, ".") != 0) printf("%s\n", token);
                                             char c = getchar();     // Wait for response
                                             if (c == 'd') {
                                                 // Send DELE <msgnumber> command

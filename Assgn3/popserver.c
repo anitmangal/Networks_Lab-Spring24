@@ -202,7 +202,7 @@ int main(int argc, char * argv[]) {
                 }
                 else if(state == TRANSACTION){
                     myrecv(newsockid, buf, MAXBUFFLEN);
-                    printf("%s\n", buf);    // debug
+                    // printf("%s\n", buf);    // debug
                     if(strncmp(buf, "STAT", 4) == 0) {
                         int ntosend = n, sztosend = 0;
                         for(int i=0; i<MAXMAILNO; i++){
@@ -255,7 +255,7 @@ int main(int argc, char * argv[]) {
                                     char listmsg[100];
                                     sprintf(listmsg, "%d %d\r\n", i, szofmail[i]);
                                     send(newsockid, listmsg, strlen(listmsg), 0);
-                                    printf("serv: %s", listmsg);   // debug
+                                    // printf("serv: %s", listmsg);   // debug
                                 }
                             }
                             char listend[] = ".\r\n";
@@ -294,7 +294,7 @@ int main(int argc, char * argv[]) {
                     else if(strncmp(buf, "RETR", 4) == 0) {
                         int num;
                         sscanf(buf, "RETR %d", &num);
-                        printf("num: %d\n", num);   // debug
+                        // printf("num: %d\n", num);   // debug
                         if(num<=n && del[num] == 0){
                             char msg[51][MAXBUFFLEN];
                             int szofmail=0, last=0, lineno=0;
@@ -330,7 +330,7 @@ int main(int argc, char * argv[]) {
                             sprintf(retr, "+OK %d octets\r\n", szofmail);
                             send(newsockid, retr, strlen(retr), 0);
                             for(int i=0; i<lineno; i++){
-                                printf("serv: %s", msg[i]);   // debug
+                                // printf("serv: %s", msg[i]);   // debug
                                 send(newsockid, msg[i], strlen(msg[i]), 0);
                             }
                         }
