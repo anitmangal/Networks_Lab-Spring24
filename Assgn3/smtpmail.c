@@ -27,6 +27,7 @@ void myrecv(int sockid, char * buf, int len) {
         }
         else {
             msgbuf[msgind] = '\0';
+            if (recv_ind == recvbytes-1) recv(sockid, buf, 100, 0);             // Edge case: if \r is at the end of last recv, expect a \n next. So, skip it.
             break;
         }
     }
@@ -84,7 +85,6 @@ int main(int argc, char * argv[]) {
             myrecv(newsockid, buf, 100);                            // Receive HELO
 
             if (strncmp(buf, "HELO", 4) == 0) {
-
                 strcpy(buf, "250 OK Hello ");
                 strcat(buf, inet_ntoa(cli_addr.sin_addr));
                 strcat(buf, " Pleased to meet you\r\n");
@@ -161,7 +161,7 @@ int main(int argc, char * argv[]) {
                                 send(newsockid, buf, strlen(buf), 0);   // Send 354
 
                                 // Receive From, To and Subject and write to file
-                                char writebuf[100];
+                                char writebuf[150];
                                 int write_ind = 0, cnt = 0, recv_ind = 0;
                                 int recvbytes = recv(newsockid, buf, 100, 0);
                                 while (cnt < 3) {
@@ -178,7 +178,12 @@ int main(int argc, char * argv[]) {
                                         writebuf[write_ind] = '\0';
                                         fprintf(f, "%s\n", writebuf);
                                         write_ind = 0;
-                                        recv_ind += 2;
+                                        // Edge case: if \r is at the end of last recv, expect a \n next. So, skip it.
+                                        if (recv_ind == recvbytes-1) {
+                                            recvbytes = recv(newsockid, buf, 100, 0);
+                                            recv_ind = 1;
+                                        }
+                                        else recv_ind += 2;
                                         cnt++;
                                     }
                                 }
@@ -205,33 +210,66 @@ int main(int argc, char * argv[]) {
                                     }
                                     else {
                                         writebuf[write_ind] = '\0';
+                                        if (recv_ind == recvbytes-1) recv(newsockid, buf, 100, 0);
                                         fprintf(f, "%s\n", writebuf);
                                         if (write_ind == 1 && writebuf[0] == '.') {
                                             break;
                                         }
                                         write_ind = 0;
-                                        recv_ind += 2;
+                                        // Edge case: if \r is at the end of last recv, expect a \n next. So, skip it.
+                                        if (recv_ind == recvbytes-1) {
+                                            recvbytes = recv(newsockid, buf, 100, 0);
+                                            recv_ind = 1;
+                                        }
+                                        else recv_ind += 2;
                                     }
                                 }
 
                                 fclose(f);
                                 strcpy(buf, "250 OK Message accepted for delivery\r\n");
                                 send(newsockid, buf, strlen(buf), 0);           // Send OK
-
                                 myrecv(newsockid, buf, 100);                    // Receive QUIT
                                 if (strncmp(buf, "QUIT", 4) == 0) {
-
                                     strcpy(buf, "221 [");
                                     strcat(buf, inet_ntoa(cli_addr.sin_addr));
                                     strcat(buf, "] Service closing transmission channel\r\n");
                                     send(newsockid, buf, strlen(buf), 0);       // Send closing message
-
+                                    exit(0);
+                                }
+                                else {
+                                    strcpy(buf, "500 Syntax error, command unrecognised\r\n");
+                                    send(newsockid, buf, strlen(buf), 0);       // Send error message
+                                    close(newsockid);                           // Close connection
                                     exit(0);
                                 }
                             }
+                            else {
+                                strcpy(buf, "500 Syntax error, command unrecognised\r\n");
+                                send(newsockid, buf, strlen(buf), 0);           // Send error message
+                                close(newsockid);                               // Close connection
+                                exit(0);
+                            }
                         }
                     }
+                    else {
+                        strcpy(buf, "500 Syntax error, command unrecognised\r\n");
+                        send(newsockid, buf, strlen(buf), 0);               // Send error message
+                        close(newsockid);                                   // Close connection
+                        exit(0);
+                    }
                 }
+                else {
+                    strcpy(buf, "500 Syntax error, command unrecognised\r\n");
+                    send(newsockid, buf, strlen(buf), 0);                   // Send error message
+                    close(newsockid);                                       // Close connection
+                    exit(0);
+                }
+            }
+            else {
+                strcpy(buf, "500 Syntax error, command unrecognised\r\n");
+                send(newsockid, buf, strlen(buf), 0);                       // Send error message
+                close(newsockid);                                           // Close connection
+                exit(0);
             }
         }
         else {

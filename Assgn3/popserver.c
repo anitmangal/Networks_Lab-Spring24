@@ -34,6 +34,7 @@ void myrecv(int sockid, char * buf, int len) {
         }
         else {
             msgbuf[msgind] = '\0';
+            if (recv_ind == recvbytes-1) recv(sockid, buf, len, 0);             // Edge case: if \r is at the end of last recv, expect a \n next. So, skip it.
             break;
         }
     }
