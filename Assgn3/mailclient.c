@@ -391,7 +391,6 @@ int main(int argc, char *argv[])
                 if(strncmp(from, "From: ", 6))
                 {
                     printf("Enter valid mail!\n");
-                    // close(sockfd);
                     break;
                 }
                 int f=1;
@@ -399,13 +398,11 @@ int main(int argc, char *argv[])
                 {
                     if(from[i]=='@'&&from[i-1]==' '){
                         printf("Enter valid mail!\n");
-                        // close(sockfd);
                         f=0;
                         break;
                     }
                     if(i==99){
                         printf("Enter valid mail!\n");
-                        // close(sockfd);
                         f=0;
                         break;
                     }
@@ -428,7 +425,6 @@ int main(int argc, char *argv[])
                 if(strncmp(to, "To: ", 4))
                 {
                     printf("Enter valid mail!\n");
-                    // close(sockfd);
                     break;
                 }
                 f=1;
@@ -436,13 +432,11 @@ int main(int argc, char *argv[])
                 {
                     if(to[i]=='@'&&to[i-1]==' '){
                         printf("Enter valid mail!\n");
-                        // close(sockfd);
                         f=0;
                         break;
                     }
                     if(i==99){
                         printf("Enter valid mail!\n");
-                        // close(sockfd);
                         f=0;
                         break;
                     }
@@ -465,7 +459,6 @@ int main(int argc, char *argv[])
                 if(strncmp(subject, "Subject: ", 9))
                 {
                     printf("Enter valid mail!\n");
-                    // close(sockfd);
                     break;
                 }
                 for(int i=0; i<100; i++)
@@ -478,12 +471,10 @@ int main(int argc, char *argv[])
                 }
                 if(lines==50){
                     printf("Mail too long!\n");
-                    // close(sockfd);
                     break;
                 }
                 if(strcmp(body[lines], ".\r\n")){
                     printf("Enter valid mail!\n");
-                    // close(sockfd);
                     break;
                 }
                 lines++;
@@ -517,14 +508,6 @@ int main(int argc, char *argv[])
 
                 // shud get 220
                 myrecv(sockfd, buf, MAXBUFFLEN);
-                // bytesRead=recv(sockfd, buf, MAXBUFFLEN, 0);
-                // buf[bytesRead]='\0';        //to remove the garbage value at the end of buf
-                // printf("s: %s\n", buf);
-                // if(bytesRead<0)
-                // {
-                //     perror("Unable to read from socket\n");
-                //     exit(0);
-                // }
                 if(!strncmp(buf, "220", 3)){
                     strcpy(buf,"HELO ");
                     strcat(buf, local_ip); 
@@ -534,14 +517,6 @@ int main(int argc, char *argv[])
 
                     // shud get 250
                     myrecv(sockfd, buf, MAXBUFFLEN);
-                    // bytesRead=recv(sockfd, buf, MAXBUFFLEN, 0);
-                    // buf[bytesRead]='\0';        //to remove the garbage value at the end of buf
-                    // printf("s: %s\n", buf);
-                    // if(bytesRead<0)
-                    // {
-                    //     perror("Unable to read from socket\n");
-                    //     exit(0);
-                    // }
                     if(!strncmp(buf,"250",3)){
 
                         //from
@@ -558,14 +533,6 @@ int main(int argc, char *argv[])
 
                         // shud get 250
                         myrecv(sockfd, buf, MAXBUFFLEN);
-                        // bytesRead=recv(sockfd, buf, MAXBUFFLEN, 0);
-                        // buf[bytesRead]='\0';        //to remove the garbage value at the end of buf
-                        // printf("s: %s\n", buf);
-                        // if(bytesRead<0)
-                        // {
-                        //     perror("Unable to read from socket\n");
-                        //     exit(0);
-                        // }
                         if(!strncmp(buf,"250",3)){
                             //to
                             strcpy(buf, "RCPT TO:<");
@@ -581,27 +548,11 @@ int main(int argc, char *argv[])
 
                             // shud get 250
                             myrecv(sockfd, buf, MAXBUFFLEN);
-                            // bytesRead=recv(sockfd, buf, MAXBUFFLEN, 0);
-                            // buf[bytesRead]='\0';        //to remove the garbage value at the end of buf
-                            // printf("s: %s\n", buf);
-                            // if(bytesRead<0)
-                            // {
-                            //     perror("Unable to read from socket\n");
-                            //     exit(0);
-                            // }
                             if(!strncmp(buf,"250",3)){
                                 send(sockfd, "DATA\r\n", 6, 0);
 
                                 // shud get 354
                                 myrecv(sockfd, buf, MAXBUFFLEN);
-                                // bytesRead=recv(sockfd, buf, MAXBUFFLEN, 0);
-                                // buf[bytesRead]='\0';        //to remove the garbage value at the end of buf
-                                // printf("s: %s\n", buf);
-                                // if(bytesRead<0)
-                                // {
-                                //     perror("Unable to read from socket\n");
-                                //     exit(0);
-                                // }
                                 if(!strncmp(buf,"354",3)){
                                     // sending mail data
                                     for(int i=0; i<100; i++)        //the 3 loops are for adding <CR><LF> at the end of each line
@@ -648,41 +599,37 @@ int main(int argc, char *argv[])
 
                                     // shud get 250
                                     myrecv(sockfd, buf, MAXBUFFLEN);
-                                    // bytesRead=recv(sockfd, buf, MAXBUFFLEN, 0);
-                                    // buf[bytesRead]='\0';        //to remove the garbage value at the end of buf
-                                    // printf("s: %s\n", buf);
-                                    // if(bytesRead<0)
-                                    // {
-                                    //     perror("Unable to read from socket\n");
-                                    //     exit(0);
-                                    // }
                                     if(!strncmp(buf,"250",3)){     
                                         send(sockfd, "QUIT\r\n", 6, 0);
 
                                         // shud get 221
                                         myrecv(sockfd, buf, MAXBUFFLEN);
-                                        // bytesRead=recv(sockfd, buf, MAXBUFFLEN, 0);
-                                        // buf[bytesRead]='\0';        //to remove the garbage value at the end of buf
-                                        // printf("s: %s\n", buf);
-                                        // if(bytesRead<0)
-                                        // {
-                                        //     perror("Unable to read from socket\n");
-                                        //     exit(0);
-                                        // }
                                         if(!strncmp(buf,"221",3)){
                                             printf("Mail sent successfully!\n");
                                         }
                                     }
+                                    else{
+                                        printf("Error occured!\n");
+                                    }
+                                }
+                                else{
+                                    printf("Error occured!\n");
                                 }
                             }
                             else{
                                 printf("Error occured!\n");
                             }
                         }
+                        else{
+                            printf("Error occured!\n");
+                        }
+                    }
+                    else{
+                        printf("Error occured!\n");
                     }
                 }
                 else{
-                    printf("Error occured!\n");
+                    printf("Error in connection!\n");
                 }
 
                 // Free the memory
