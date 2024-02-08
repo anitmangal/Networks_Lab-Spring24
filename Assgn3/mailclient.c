@@ -102,20 +102,22 @@ int main(int argc, char *argv[])
                         send(sockfd, buf, strlen(buf), 0);
                         printf("%s\n", buf); // debug
                         // printf("in PASS\n");    // debug
-                        fflush(stdout);
+                        // fflush(stdout);
 
                         myrecv(sockfd, buf, MAXBUFFLEN);        // Receive response to PASS
-                        printf("hey%smama\n", buf); // debug
+                        printf("%s\n", buf); // debug
                         fflush(stdout);
 
                         if (strncmp(buf, "+OK", 3) == 0) {
                             // TRANSACTION state
+                            printf("transaction state\n");   // debug
                             while (1) {
                                 // Send STAT command
                                 strcpy(buf, "STAT\r\n");
                                 send(sockfd, buf, strlen(buf), 0);
 
                                 myrecv(sockfd, buf, MAXBUFFLEN);        // Receive response to STAT
+                                printf("STAT 1: %s\n", buf); // debug
 
                                 if (strncmp(buf, "+OK", 3) == 0) {
                                     // Find number of messages and size of maildrop through response
@@ -160,6 +162,7 @@ int main(int argc, char *argv[])
                                             break;
                                         }
                                     }
+                                    printf("LIST 1: %s\n", msgbuf); // debug
                                     if (strncmp(msgbuf, "+OK", 3) == 0) {
                                         // Response OK, get each line giving scan listing of each message
                                         int cnt = 0;

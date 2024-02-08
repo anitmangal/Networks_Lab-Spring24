@@ -86,6 +86,7 @@ int main(int argc, char * argv[]) {
             int n=0;
             int del[MAXMAILNO+1];
             char user[100], pass[100];
+            char filepath[100];
             FILE * mailbox;
             memset(del, 0, sizeof(del));
 
@@ -113,7 +114,6 @@ int main(int argc, char * argv[]) {
                         user[i-5] = '\0';
                         // printf("%s\n", user);   // debug
                         fflush(stdout);
-                        char filepath[100];
                         strcpy(filepath, user);
                         strcat(filepath, "/mymailbox");
                         mailbox = fopen(filepath, "r");
@@ -170,6 +170,7 @@ int main(int argc, char * argv[]) {
                                             printf("%s\n", passok); // debug
                                             send(newsockid, passok, strlen(passok), 0);
                                             state = TRANSACTION;
+                                            printf("Entering TRANSACTION state\n");   // debug
                                             // myrecv(newsockid, buf, MAXBUFFLEN);
                                             // printf("%s", buf);    // debug
                                             break;
@@ -201,6 +202,7 @@ int main(int argc, char * argv[]) {
                 }
                 else if(state == TRANSACTION){
                     myrecv(newsockid, buf, MAXBUFFLEN);
+                    printf("%s\n", buf);    // debug
                     if(strncmp(buf, "STAT", 4) == 0) {
                         int ntosend = n, sztosend = 0;
                         for(int i=0; i<MAXMAILNO; i++){
@@ -219,15 +221,21 @@ int main(int argc, char * argv[]) {
                             }
                         }
                         char stat[100];
-                        sprintf(stat, "+OK %d %d\r\n", ntosend, sztosend);
+                        sprintf(stat, "STAT+OK %d %d\r\n", ntosend, sztosend);
                         send(newsockid, stat, strlen(stat), 0);
                     }
                     else if(strncmp(buf, "LIST", 4) == 0) {
                         if(strlen(buf) == 5){
                             int num=1,last=0,totsz=0;
-                            fseek(mailbox, 0L, SEEK_SET);
-                            int szofmail[n];
+                            int szofmail[n+1];
                             memset(szofmail, 0, sizeof(szofmail));
+                            int ntosend=0;
+                            for(int i=1; i<=n; i++){
+                                if(del[i] == 0){
+                                    ntosend++;
+                                }
+                            }
+                            fseek(mailbox, 0L, SEEK_SET);
                             while(fgets(buf, MAXBUFFLEN, mailbox)){
                                 if(del[num] == 0){
                                     szofmail[num]+=ftell(mailbox)-last;
@@ -239,7 +247,7 @@ int main(int argc, char * argv[]) {
                                 }
                             }
                             char list[100];
-                            sprintf(list, "+OK %d messages (%d octets)\r\n", n, totsz);
+                            sprintf(list, "LIST+OK %d messages (%d octets)\r\n", ntosend, totsz);
                             send(newsockid, list, strlen(list), 0);
                             for(int i=1; i<=n; i++){
                                 if(del[i] == 0){
@@ -359,6 +367,7 @@ int main(int argc, char * argv[]) {
                             cnt++;
                         }
                     }
+                    // make sure the code below works as intended (removes prev mailbox and replaces with new one)
                     fclose(mailbox);
                     fclose(tmp);
                     remove(filepath);
