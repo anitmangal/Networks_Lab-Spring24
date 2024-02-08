@@ -225,7 +225,7 @@ int main(int argc, char * argv[]) {
                         send(newsockid, stat, strlen(stat), 0);
                     }
                     else if(strncmp(buf, "LIST", 4) == 0) {
-                        if(strlen(buf) == 5){
+                        if(strlen(buf) <= 5){
                             int num=1,last=0,totsz=0;
                             int szofmail[n+1];
                             memset(szofmail, 0, sizeof(szofmail));
@@ -235,13 +235,14 @@ int main(int argc, char * argv[]) {
                                     ntosend++;
                                 }
                             }
+                            // printf("ntosend: %d\n", ntosend);   // debug
                             fseek(mailbox, 0L, SEEK_SET);
                             while(fgets(buf, MAXBUFFLEN, mailbox)){
                                 if(del[num] == 0){
-                                    szofmail[num]+=ftell(mailbox)-last;
-                                    totsz+=ftell(mailbox)-last;
                                 }
                                 if(strcmp(buf, ".\n") == 0){
+                                    szofmail[num]=ftell(mailbox)-last;
+                                    totsz+=ftell(mailbox)-last;
                                     last = ftell(mailbox);
                                     num++;
                                 }
@@ -254,6 +255,7 @@ int main(int argc, char * argv[]) {
                                     char listmsg[100];
                                     sprintf(listmsg, "%d %d\r\n", i, szofmail[i]);
                                     send(newsockid, listmsg, strlen(listmsg), 0);
+                                    printf("serv: %s", listmsg);   // debug
                                 }
                             }
                             char listend[] = ".\r\n";
@@ -269,10 +271,10 @@ int main(int argc, char * argv[]) {
                                     if(cnt>num){
                                         break;
                                     }
-                                    if(cnt==num){
-                                        szofmail+=ftell(mailbox)-last;
-                                    }
                                     if(strcmp(buf, ".\n") == 0){
+                                        if(cnt==num){
+                                            szofmail=ftell(mailbox)-last;
+                                        }
                                         if(cnt==num-1){
                                             last = ftell(mailbox);
                                         }
@@ -292,9 +294,10 @@ int main(int argc, char * argv[]) {
                     else if(strncmp(buf, "RETR", 4) == 0) {
                         int num;
                         sscanf(buf, "RETR %d", &num);
+                        printf("num: %d\n", num);   // debug
                         if(num<=n && del[num] == 0){
-                            char msg[50][MAXBUFFLEN];
-                            int szofmail, last=0, lineno=0;
+                            char msg[51][MAXBUFFLEN];
+                            int szofmail=0, last=0, lineno=0;
                             fseek(mailbox, 0L, SEEK_SET);
                             int cnt=1;
                             while(fgets(buf, MAXBUFFLEN, mailbox)){
@@ -302,11 +305,21 @@ int main(int argc, char * argv[]) {
                                     break;
                                 }
                                 if(cnt==num){
-                                    szofmail+=ftell(mailbox)-last;
                                     strcpy(msg[lineno], buf);
+                                    for(int i=0;i<strlen(msg[lineno]);i++){
+                                        if(msg[lineno][i] == '\n'){
+                                            msg[lineno][i] = '\r';
+                                            msg[lineno][i+1] = '\n';
+                                            msg[lineno][i+2] = '\0';
+                                            break;
+                                        }
+                                    }
                                     lineno++;
                                 }
                                 if(strcmp(buf, ".\n") == 0){
+                                    if(cnt==num){
+                                        szofmail=ftell(mailbox)-last;
+                                    }
                                     if(cnt==num-1){
                                         last = ftell(mailbox);
                                     }
@@ -317,6 +330,7 @@ int main(int argc, char * argv[]) {
                             sprintf(retr, "+OK %d octets\r\n", szofmail);
                             send(newsockid, retr, strlen(retr), 0);
                             for(int i=0; i<lineno; i++){
+                                printf("serv: %s", msg[i]);   // debug
                                 send(newsockid, msg[i], strlen(msg[i]), 0);
                             }
                         }

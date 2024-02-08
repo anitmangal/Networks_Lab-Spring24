@@ -178,6 +178,7 @@ int main(int argc, char *argv[])
                                             }
                                             else {
                                                 msgbuf[msg_ind] = '\0';
+                                                printf("LIST 2: %s\n", msgbuf); // debug
                                                 recv_ind += 2;
                                                 msg_ind = 0;
                                                 if (strcmp(msgbuf, ".") == 0 || cnt >= nummsg) {
@@ -202,6 +203,7 @@ int main(int argc, char *argv[])
                                                     msgmap[cnt] = msgNumber;                // Map message number
                                                     mailbox[cnt] = (char*)malloc(msgSize*sizeof(char));     // Allocate space for message
                                                     cnt++;
+                                                    msg_ind = 0;
                                                 }
                                             }
                                         }
@@ -237,6 +239,7 @@ int main(int argc, char *argv[])
                                                     break;
                                                 }
                                             }
+                                            printf("RETR 1: %s\n", msgbuf); // debug
                                             if (strncmp(msgbuf, "+OK", 3) == 0) {
                                                 // Response OK, get message until <CR><LF>.<CR><LF>
                                                 while(1) {
