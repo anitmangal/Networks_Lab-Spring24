@@ -45,7 +45,6 @@ int main(int argc, char *argv[])
     struct sockaddr_in serv_addr, local_addr;
     socklen_t local_addr_len = sizeof(local_addr);
     char buf[MAXBUFFLEN];
-    int bytesRead;
     size_t maxLen = MAXBUFFLEN;
     char username[100], password[100];
 

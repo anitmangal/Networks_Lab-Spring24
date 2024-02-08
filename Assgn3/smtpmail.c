@@ -57,7 +57,7 @@ int main(int argc, char * argv[]) {
     listen(sockid, 5);
     int newsockid;
     struct sockaddr_in cli_addr;
-    int clilen = sizeof(cli_addr);
+    socklen_t clilen = sizeof(cli_addr);
 
     // Iterative server
     while(1) {
@@ -145,9 +145,11 @@ int main(int argc, char * argv[]) {
                         else {
                             fclose(f);
 
-                            strcpy(buf, "250 ");
+                            strcpy(buf, "250 <");
                             strcat(buf, to_user);
-                            strcat(buf, " Recipient ok\r\n");
+                            strcat(buf, "@");
+                            strcat(buf, to_domain);
+                            strcat(buf, "> Recipient ok\r\n");
                             send(newsockid, buf, strlen(buf), 0);       // Send OK
 
                             f = fopen(to_user, "a");

@@ -64,7 +64,7 @@ int main(int argc, char * argv[]) {
     listen(sockid, 5);
     int newsockid;
     struct sockaddr_in cli_addr;
-    int clilen = sizeof(cli_addr);
+    socklen_t clilen = sizeof(cli_addr);
 
     // Iterative server
     while(1) {
@@ -277,8 +277,9 @@ int main(int argc, char * argv[]) {
                             char msg[51][MAXBUFFLEN];
                             int szofmail=0, last=0, lineno=0;
                             fseek(mailbox, 0L, SEEK_SET);
-                            int cnt=1;
+                            int cnt=1, linecnt = 0;
                             while(fgets(buf, MAXBUFFLEN, mailbox)){
+                                linecnt++;
                                 if(cnt>num){
                                     break;
                                 }
@@ -296,10 +297,11 @@ int main(int argc, char * argv[]) {
                                 }
                                 if(strcmp(buf, ".\n") == 0){
                                     if(cnt==num){
-                                        szofmail=ftell(mailbox)-last;
+                                        szofmail=ftell(mailbox)-last+linecnt;
                                     }
                                     if(cnt==num-1){
                                         last = ftell(mailbox);
+                                        linecnt = 0;
                                     }
                                     cnt++;
                                 }
@@ -335,7 +337,7 @@ int main(int argc, char * argv[]) {
                         state = UPDATE;
                     }
                     else {
-                        // wrong command????
+                        // wrong command????    -> could give a -ERR response and close the connection
                     }
                 }
                 else if(state == UPDATE){
@@ -368,7 +370,7 @@ int main(int argc, char * argv[]) {
                     exit(0);
                 }
                 else {
-                    // what to do here????
+                    // what to do here????  -> no need to do anything here
                 }
 
             }
