@@ -84,7 +84,7 @@ int main(int argc, char * argv[]) {
             char buf[MAXBUFFLEN];
             int state;
             int n=0;
-            int del[MAXMAILNO];
+            int del[MAXMAILNO+1];
             char user[100], pass[100];
             FILE * mailbox;
             memset(del, 0, sizeof(del));
@@ -256,7 +256,7 @@ int main(int argc, char * argv[]) {
                             sscanf(buf, "LIST %d", &num);
                             if(num<=n && del[num] == 0){
                                 fseek(mailbox, 0L, SEEK_SET);
-                                int cnt=0;
+                                int cnt=1;
                                 while(fgets(buf, MAXBUFFLEN, mailbox)){
                                     if(cnt>num){
                                         break;
@@ -288,7 +288,7 @@ int main(int argc, char * argv[]) {
                             char msg[50][MAXBUFFLEN];
                             int szofmail, last=0, lineno=0;
                             fseek(mailbox, 0L, SEEK_SET);
-                            int cnt=0;
+                            int cnt=1;
                             while(fgets(buf, MAXBUFFLEN, mailbox)){
                                 if(cnt>num){
                                     break;
@@ -340,7 +340,32 @@ int main(int argc, char * argv[]) {
                     }
                 }
                 else if(state == UPDATE){
-                    // implement UPDATE
+                    int num=0;
+                    for(int i=1; i<=n; i++){
+                        if(del[i] == 0){
+                            num++;
+                        }
+                    }
+                    char update[100];
+                    sprintf(update, "+OK %d messages left\r\n", num);
+                    int cnt=1;
+                    FILE * tmp=fopen("tmp", "w");
+                    fseek(mailbox, 0L, SEEK_SET);
+                    while(fgets(buf, MAXBUFFLEN, mailbox)){
+                        if(del[cnt] == 0){
+                            fprintf(tmp, "%s", buf);
+                        }
+                        if(strcmp(buf, ".\n") == 0){
+                            cnt++;
+                        }
+                    }
+                    fclose(mailbox);
+                    fclose(tmp);
+                    remove(filepath);
+                    rename("tmp", filepath);
+                    send(newsockid, update, strlen(update), 0);
+                    close(newsockid);
+                    exit(0);
                 }
                 else {
                     // what to do here????
