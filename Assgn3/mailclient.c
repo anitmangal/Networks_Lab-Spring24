@@ -117,7 +117,7 @@ int main(int argc, char *argv[])
                                 send(sockfd, buf, strlen(buf), 0);
 
                                 myrecv(sockfd, buf, MAXBUFFLEN);        // Receive response to STAT
-                                printf("STAT 1: %s\n", buf); // debug
+                                // printf("STAT 1: %s\n", buf); // debug
 
                                 if (strncmp(buf, "+OK", 3) == 0) {
                                     // Find number of messages and size of maildrop through response
@@ -162,7 +162,7 @@ int main(int argc, char *argv[])
                                             break;
                                         }
                                     }
-                                    printf("LIST 1: %s\n", msgbuf); // debug
+                                    // printf("LIST 1: %s\n", msgbuf); // debug
                                     if (strncmp(msgbuf, "+OK", 3) == 0) {
                                         // Response OK, get each line giving scan listing of each message
                                         int cnt = 0;
@@ -178,7 +178,7 @@ int main(int argc, char *argv[])
                                             }
                                             else {
                                                 msgbuf[msg_ind] = '\0';
-                                                printf("LIST 2: %s\n", msgbuf); // debug
+                                                // printf("LIST 2: %s\n", msgbuf); // debug
                                                 recv_ind += 2;
                                                 msg_ind = 0;
                                                 if (strcmp(msgbuf, ".") == 0 || cnt >= nummsg) {
@@ -239,7 +239,7 @@ int main(int argc, char *argv[])
                                                     break;
                                                 }
                                             }
-                                            printf("RETR 1: %s\n", msgbuf); // debug
+                                            // printf("RETR 1: %s\n", msgbuf); // debug
                                             if (strncmp(msgbuf, "+OK", 3) == 0) {
                                                 // Response OK, get message until <CR><LF>.<CR><LF>
                                                 while(1) {
@@ -317,6 +317,7 @@ int main(int argc, char *argv[])
                                             // char * token = strtok(mailbox[cnt], "\r\n");        // changed mail_choice to cnt
                                             // while (strcmp(token, ".") != 0) printf("%s\n", token);
                                             char c = getchar();     // Wait for response
+                                            c = getchar();          // Wait for response
                                             if (c == 'd') {
                                                 // Send DELE <msgnumber> command
                                                 strcpy(buf, "DELE ");
