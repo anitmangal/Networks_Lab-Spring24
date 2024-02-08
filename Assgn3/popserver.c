@@ -92,7 +92,6 @@ int main(int argc, char * argv[]) {
 
             // When the connection is established, the POP3 server sends a greeting.
             char greeting[] = "+OK POP3 server ready\r\n";
-            // printf("Sending greeting\n");   // debug
             send(newsockid, greeting, strlen(greeting), 0);
 
             state = AUTHORIZATION;
@@ -101,26 +100,20 @@ int main(int argc, char * argv[]) {
             while(1){
                 if (state == AUTHORIZATION) {
                     myrecv(newsockid, buf, MAXBUFFLEN);
-                    printf("%s\n", buf);    // debug
                     fflush(stdout);
                     if (strncmp(buf, "USER", 4) == 0) {
-                        // printf("USER command\n");   // debug
                         fflush(stdout);
                         int i;
                         for(i=5; buf[i] != '\0'; i++) {
                             user[i-5] = buf[i];
-                            // printf("%d\n", i);   // debug
                         }
                         user[i-5] = '\0';
-                        // printf("%s\n", user);   // debug
                         fflush(stdout);
                         strcpy(filepath, user);
                         strcat(filepath, "/mymailbox");
                         mailbox = fopen(filepath, "r");
-                        // printf("%s\n", filepath);   // debug
                         fflush(stdout);
                         if (mailbox == NULL) {
-                            printf("Mailbox not found\n");   // debug
                             fflush(stdout);
                             char usererr[] = "-ERR no such user\r\n";
                             send(newsockid, usererr, strlen(usererr), 0);
@@ -128,14 +121,11 @@ int main(int argc, char * argv[]) {
                             exit(0);
                         }
                         else {
-                            printf("Mailbox found\n");   // debug
                             fflush(stdout);
                             char userok[] = "+OK user exists\r\n";
                             send(newsockid, userok, strlen(userok), 0);
-                            printf("expecting PASS\n");   // debug
                             fflush(stdout);
                             myrecv(newsockid, buf, MAXBUFFLEN);
-                            printf("%s\n", buf);    // debug
                             fflush(stdout);
                             if(strncmp(buf, "PASS", 4) == 0) {
                                 for(i=5; buf[i] != '\0'; i++) {
@@ -148,17 +138,10 @@ int main(int argc, char * argv[]) {
                                     if(strcmp(stored_user, user) == 0) {
                                         if(strcmp(stored_pass, pass) == 0) {
                                             int sz;
-                                            printf("Reading mailbox\n");   // debug
                                             fflush(stdout);
                                             int cnt=0;
                                             while(fgets(buf, MAXBUFFLEN, mailbox)){
                                                 cnt++;
-                                                // printf("%d: ", cnt);    // debug
-                                                // fflush(stdout);
-                                                // for(int j=0; j<strlen(buf); j++){
-                                                //     printf("(%d,%c)", buf[j], buf[j]);    // debug
-                                                //     fflush(stdout);
-                                                // }
                                                 if(strcmp(buf, ".\n") == 0){
                                                     n++;
                                                 }
@@ -167,12 +150,8 @@ int main(int argc, char * argv[]) {
                                             sz = ftell(mailbox);
                                             char passok[100];
                                             sprintf(passok, "+OK mailbox has %d messages (%d octets)\r\n", n, sz);
-                                            printf("%s\n", passok); // debug
                                             send(newsockid, passok, strlen(passok), 0);
                                             state = TRANSACTION;
-                                            printf("Entering TRANSACTION state\n");   // debug
-                                            // myrecv(newsockid, buf, MAXBUFFLEN);
-                                            // printf("%s", buf);    // debug
                                             break;
                                         }
                                         else{
@@ -202,7 +181,6 @@ int main(int argc, char * argv[]) {
                 }
                 else if(state == TRANSACTION){
                     myrecv(newsockid, buf, MAXBUFFLEN);
-                    // printf("%s\n", buf);    // debug
                     if(strncmp(buf, "STAT", 4) == 0) {
                         int ntosend = n, sztosend = 0;
                         for(int i=0; i<MAXMAILNO; i++){
@@ -215,7 +193,7 @@ int main(int argc, char * argv[]) {
                         int num=1;
                         while(fgets(szbuf, MAXBUFFLEN, mailbox)){
                             if(del[num] == 0)
-                                sztosend += strlen(szbuf);
+                                sztosend += strlen(szbuf)+1;
                             if(strcmp(szbuf, ".\n") == 0){
                                 num++;
                             }
@@ -235,16 +213,16 @@ int main(int argc, char * argv[]) {
                                     ntosend++;
                                 }
                             }
-                            // printf("ntosend: %d\n", ntosend);   // debug
                             fseek(mailbox, 0L, SEEK_SET);
+                            int linecnt = 0;
                             while(fgets(buf, MAXBUFFLEN, mailbox)){
-                                if(del[num] == 0){
-                                }
+                                linecnt++;
                                 if(strcmp(buf, ".\n") == 0){
-                                    szofmail[num]=ftell(mailbox)-last;
-                                    totsz+=ftell(mailbox)-last;
+                                    szofmail[num]=ftell(mailbox)-last+linecnt;
+                                    totsz+=ftell(mailbox)-last+linecnt;
                                     last = ftell(mailbox);
                                     num++;
+                                    linecnt=0;
                                 }
                             }
                             char list[100];
@@ -255,7 +233,6 @@ int main(int argc, char * argv[]) {
                                     char listmsg[100];
                                     sprintf(listmsg, "%d %d\r\n", i, szofmail[i]);
                                     send(newsockid, listmsg, strlen(listmsg), 0);
-                                    // printf("serv: %s", listmsg);   // debug
                                 }
                             }
                             char listend[] = ".\r\n";
@@ -266,17 +243,19 @@ int main(int argc, char * argv[]) {
                             sscanf(buf, "LIST %d", &num);
                             if(num<=n && del[num] == 0){
                                 fseek(mailbox, 0L, SEEK_SET);
-                                int cnt=1;
+                                int cnt=1, linecnt = 0;
                                 while(fgets(buf, MAXBUFFLEN, mailbox)){
+                                    linecnt++;
                                     if(cnt>num){
                                         break;
                                     }
                                     if(strcmp(buf, ".\n") == 0){
                                         if(cnt==num){
-                                            szofmail=ftell(mailbox)-last;
+                                            szofmail=ftell(mailbox)-last+linecnt;
                                         }
                                         if(cnt==num-1){
                                             last = ftell(mailbox);
+                                            linecnt = 0;
                                         }
                                         num++;
                                     }
@@ -294,7 +273,6 @@ int main(int argc, char * argv[]) {
                     else if(strncmp(buf, "RETR", 4) == 0) {
                         int num;
                         sscanf(buf, "RETR %d", &num);
-                        // printf("num: %d\n", num);   // debug
                         if(num<=n && del[num] == 0){
                             char msg[51][MAXBUFFLEN];
                             int szofmail=0, last=0, lineno=0;
@@ -330,7 +308,6 @@ int main(int argc, char * argv[]) {
                             sprintf(retr, "+OK %d octets\r\n", szofmail);
                             send(newsockid, retr, strlen(retr), 0);
                             for(int i=0; i<lineno; i++){
-                                // printf("serv: %s", msg[i]);   // debug
                                 send(newsockid, msg[i], strlen(msg[i]), 0);
                             }
                         }

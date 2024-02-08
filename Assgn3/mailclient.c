@@ -63,12 +63,15 @@ int main(int argc, char *argv[])
         printf("1. Manage Mail\n2. Send Mail\n3. Quit\nWhat would you like to do?: ");
         int choice;
         scanf("%d", &choice);
-        switch (choice)
-        {
+        while(choice < 1 || choice > 3) {
+            printf("Enter valid choice!\n");
+            printf("1. Manage Mail\n2. Send Mail\n3. Quit\nWhat would you like to do?: ");
+            scanf("%d", &choice);
+        }
+        switch (choice) {
             case 1: {
                 // Make a TCP connection with POP3 server
-                if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
-                {
+                if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
                     perror("Unable to create socket\n");
                     exit(0);
                 }
@@ -81,7 +84,6 @@ int main(int argc, char *argv[])
                     exit(0);
                 }
                 myrecv(sockfd, buf, MAXBUFFLEN);            // Receive connection response
-                printf("%s\n", buf); // debug
                 if (strncmp(buf, "+OK", 3) == 0) {
                     // AUTHORIZATION state
                     // Send USER command
@@ -91,8 +93,6 @@ int main(int argc, char *argv[])
                     send(sockfd, buf, strlen(buf), 0);
                     
                     myrecv(sockfd, buf, MAXBUFFLEN);      // Receive response to USER
-                    printf("%s\n", buf); // debug
-                    fflush(stdout);
 
                     if (strncmp(buf, "+OK", 3) == 0) {
                         // Send PASS command
@@ -100,43 +100,30 @@ int main(int argc, char *argv[])
                         strcat(buf, password);
                         strcat(buf, "\r\n");
                         send(sockfd, buf, strlen(buf), 0);
-                        printf("%s\n", buf); // debug
-                        // printf("in PASS\n");    // debug
-                        // fflush(stdout);
 
                         myrecv(sockfd, buf, MAXBUFFLEN);        // Receive response to PASS
-                        printf("%s\n", buf); // debug
-                        fflush(stdout);
 
                         if (strncmp(buf, "+OK", 3) == 0) {
                             // TRANSACTION state
-                            printf("transaction state\n");   // debug
                             while (1) {
                                 // Send STAT command
                                 strcpy(buf, "STAT\r\n");
                                 send(sockfd, buf, strlen(buf), 0);
 
                                 myrecv(sockfd, buf, MAXBUFFLEN);        // Receive response to STAT
-                                // printf("STAT 1: %s\n", buf); // debug
 
                                 if (strncmp(buf, "+OK", 3) == 0) {
-                                    // Find number of messages and size of maildrop through response
+                                    // Find number of messages through response
                                     int nummsg = 0, bufInd = 4;
                                     while (buf[bufInd] >= '0' && buf[bufInd] <= '9') {
                                         nummsg = 10*(nummsg) + (int)(buf[bufInd]-'0');
                                         bufInd++;
                                     }
 
-                                    int sizemaildrop = 0;
-                                    bufInd++;
-                                    while (buf[bufInd] >= '0' && buf[bufInd] <= '9') {
-                                        sizemaildrop = 10*(sizemaildrop) + (int)(buf[bufInd]-'0');
-                                        bufInd++;
-                                    }
+                                    char * mailbox[nummsg];               // To store the mailbox mail-wise
+                                    int idxtomsg[nummsg];                 // To map index of local mailbox to actual message number sent by server
+                                    int msgtoidx[nummsg+1];               // To map message number to index of local mailbox
 
-
-                                    char * mailbox[nummsg];             // To store the mailbox mail-wise
-                                    int msgmap[nummsg];                 // To map index of local mailbox to actual message number sent by server
                                     // Send LIST command
                                     strcpy(buf, "LIST\r\n");
                                     send(sockfd, buf, strlen(buf), 0);
@@ -162,7 +149,6 @@ int main(int argc, char *argv[])
                                             break;
                                         }
                                     }
-                                    // printf("LIST 1: %s\n", msgbuf); // debug
                                     if (strncmp(msgbuf, "+OK", 3) == 0) {
                                         // Response OK, get each line giving scan listing of each message
                                         int cnt = 0;
@@ -178,7 +164,6 @@ int main(int argc, char *argv[])
                                             }
                                             else {
                                                 msgbuf[msg_ind] = '\0';
-                                                // printf("LIST 2: %s\n", msgbuf); // debug
                                                 recv_ind += 2;
                                                 msg_ind = 0;
                                                 if (strcmp(msgbuf, ".") == 0 || cnt >= nummsg) {
@@ -200,8 +185,10 @@ int main(int argc, char *argv[])
                                                         msg_ind++;
                                                     }
 
-                                                    msgmap[cnt] = msgNumber;                // Map message number
+                                                    idxtomsg[cnt] = msgNumber;                // Map message number
+                                                    msgtoidx[msgNumber] = cnt;               // Map index of local mailbox
                                                     mailbox[cnt] = (char*)malloc(msgSize*sizeof(char));     // Allocate space for message
+
                                                     cnt++;
                                                     msg_ind = 0;
                                                 }
@@ -215,7 +202,7 @@ int main(int argc, char *argv[])
                                         for (cnt = 0; cnt < nummsg; cnt++) {
                                             // Send RETR <msgnumber> command
                                             strcpy(buf, "RETR ");
-                                            sprintf(buf+strlen(buf), "%d", msgmap[cnt]);
+                                            sprintf(buf+strlen(buf), "%d", idxtomsg[cnt]);
                                             strcat(buf, "\r\n");
                                             send(sockfd, buf, strlen(buf), 0);
 
@@ -239,7 +226,6 @@ int main(int argc, char *argv[])
                                                     break;
                                                 }
                                             }
-                                            // printf("RETR 1: %s\n", msgbuf); // debug
                                             if (strncmp(msgbuf, "+OK", 3) == 0) {
                                                 // Response OK, get message until <CR><LF>.<CR><LF>
                                                 while(1) {
@@ -255,7 +241,7 @@ int main(int argc, char *argv[])
 
                                                 // Split received message and extract relevant fields for list
                                                 char sno[10], from[100], rec[100], subject[101];
-                                                sprintf(sno, "%d", msgmap[cnt]);
+                                                sprintf(sno, "%d", idxtomsg[cnt]);
                                                 
                                                 char * token = strtok(mailbox[cnt], "\r\n");
                                                 msg_ind = 0;
@@ -285,7 +271,7 @@ int main(int argc, char *argv[])
                                         if (flag == 0) break;       // Some message caused an error in RETR, go to main menu
 
                                         // Get choice of mail to see
-                                        printf("Enter mail no. to see: ");
+                                        printf("Enter mail no. to see (-1 to exit): ");
                                         int mail_choice;
                                         while(1) {
                                             scanf("%d", &mail_choice);
@@ -293,31 +279,28 @@ int main(int argc, char *argv[])
                                                 break;
                                             }
                                             else {
-                                                for (cnt = 0; cnt < nummsg; cnt++) if (msgmap[cnt] == mail_choice) break;
+                                                for (cnt = 0; cnt < nummsg; cnt++) if (idxtomsg[cnt] == mail_choice) break;
                                                 if (cnt < nummsg) {
                                                     break;
                                                 }
                                                 else {
-                                                    // perror("Mail no. out of range, give again.");
                                                     printf("Mail no. out of range, give again: ");
                                                 }
                                             }
                                         }
                                         if (mail_choice >= 0) {
                                             // Valid mail chosen, print the message until . is seen
-                                            // printf("%s", mailbox[cnt]);     //debug
-                                            // int i;
-                                            // while(mailbox[cnt][i] != '.' && mailbox[cnt][i+1] != '\r' && mailbox[cnt][i+2] != '\n')
-                                            // {
-                                            //     if(mailbox[cnt][i]!='\r'){
-                                            //         printf("%c", mailbox[cnt][i]);
-                                            //     }
-                                            //     i++;
-                                            // }
-                                            // char * token = strtok(mailbox[cnt], "\r\n");        // changed mail_choice to cnt
-                                            // while (strcmp(token, ".") != 0) printf("%s\n", token);
-                                            char c = getchar();     // Wait for response
-                                            c = getchar();          // Wait for response
+                                            for (int j = 0;;j++) {
+                                                if (j && strncmp(mailbox[msgtoidx[mail_choice]]+j, "\r\n.\r\n", 5) == 0) break;
+                                                printf("%c", mailbox[msgtoidx[mail_choice]][j]);
+                                            }
+                                            printf("\n");
+
+                                            printf("Waiting for response (d to delete, any other key to continue):");
+
+                                            char c;
+                                            c = getchar();          // Skip the newline
+                                            c = getchar();          // Get user response
                                             if (c == 'd') {
                                                 // Send DELE <msgnumber> command
                                                 strcpy(buf, "DELE ");
@@ -347,6 +330,9 @@ int main(int argc, char *argv[])
                                             }
                                             break;                                      // UPDATE state ended
                                         }
+
+                                        // Free the mailbox
+                                        for (int i = 0; i < nummsg; i++) free(mailbox[i]);
                                     }
                                     else {
                                         perror("Error in LIST.\n");
@@ -362,7 +348,7 @@ int main(int argc, char *argv[])
                         }
                     }
                     else {
-                        perror("Username authentication error.\n");     // should we send quit command????
+                        perror("Username authentication error.\n");
                     }
                 }
                 else {
@@ -700,6 +686,10 @@ int main(int argc, char *argv[])
                     printf("Error occured!\n");
                 }
 
+                // Free the memory
+                free(from);
+                free(to);
+                free(subject);
                 close(sockfd);
                 break;
             }
