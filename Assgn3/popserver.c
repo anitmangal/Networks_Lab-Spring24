@@ -42,7 +42,7 @@ void myrecv(int sockid, char * buf, int len) {
 
 int main(int argc, char * argv[]) {
     if (argc < 2) {
-        printf("Usage: ./%s <port>\n", argv[0]);
+        printf("Usage: %s <port>\n", argv[0]);
         exit(0);
     }
     // Create socket and bind
@@ -96,49 +96,41 @@ int main(int argc, char * argv[]) {
 
             state = AUTHORIZATION;
 
-            // implement USER and PASS auth
             while(1){
                 if (state == AUTHORIZATION) {
-                    myrecv(newsockid, buf, MAXBUFFLEN);
-                    fflush(stdout);
+                    myrecv(newsockid, buf, MAXBUFFLEN);                         // expecting USER command
                     if (strncmp(buf, "USER", 4) == 0) {
-                        fflush(stdout);
                         int i;
                         for(i=5; buf[i] != '\0'; i++) {
                             user[i-5] = buf[i];
                         }
                         user[i-5] = '\0';
-                        fflush(stdout);
                         strcpy(filepath, user);
                         strcat(filepath, "/mymailbox");
                         mailbox = fopen(filepath, "r");
-                        fflush(stdout);
+
+                        // if no such user, send error and close connection
                         if (mailbox == NULL) {
-                            fflush(stdout);
                             char usererr[] = "-ERR no such user\r\n";
                             send(newsockid, usererr, strlen(usererr), 0);
                             close(newsockid);
                             exit(0);
                         }
                         else {
-                            fflush(stdout);
                             char userok[] = "+OK user exists\r\n";
                             send(newsockid, userok, strlen(userok), 0);
-                            fflush(stdout);
-                            myrecv(newsockid, buf, MAXBUFFLEN);
-                            fflush(stdout);
+                            myrecv(newsockid, buf, MAXBUFFLEN);                 // expecting PASS command
                             if(strncmp(buf, "PASS", 4) == 0) {
                                 for(i=5; buf[i] != '\0'; i++) {
                                     pass[i-5] = buf[i];
                                 }
                                 pass[i-5] = '\0';
-                                FILE * checkpass = fopen("user.txt", "r");
+                                FILE * checkpass = fopen("user.txt", "r");      // check if password is correct from user.txt
                                 char stored_user[100], stored_pass[100];
                                 while(fscanf(checkpass, "%s %s", stored_user, stored_pass) != EOF) {
                                     if(strcmp(stored_user, user) == 0) {
                                         if(strcmp(stored_pass, pass) == 0) {
                                             int sz;
-                                            fflush(stdout);
                                             int cnt=0;
                                             while(fgets(buf, MAXBUFFLEN, mailbox)){
                                                 cnt++;
@@ -163,7 +155,8 @@ int main(int argc, char * argv[]) {
                                         }
                                     }
                                 }
-                                if(state != TRANSACTION) {
+                                fclose(checkpass);
+                                if(state != TRANSACTION) {                          // if user not found in user.txt
                                     char passerr[] = "-ERR wrong password\r\n";
                                     send(newsockid, passerr, strlen(passerr), 0);
                                     close(newsockid);
@@ -182,12 +175,17 @@ int main(int argc, char * argv[]) {
                 else if(state == TRANSACTION){
                     myrecv(newsockid, buf, MAXBUFFLEN);
                     if(strncmp(buf, "STAT", 4) == 0) {
+                        // if STAT command is given, send number of mails and total size of mails
                         int ntosend = n, sztosend = 0;
+
+                        // calculate total number of mails to send (not deleted)
                         for(int i=0; i<MAXMAILNO; i++){
                             if(del[i] == 1){
                                 ntosend--;
                             }
                         }
+
+                        // calculate total size of mails to send (not deleted)
                         fseek(mailbox, 0L, SEEK_SET);
                         char szbuf[MAXBUFFLEN];
                         int num=1;
@@ -198,11 +196,13 @@ int main(int argc, char * argv[]) {
                                 num++;
                             }
                         }
+
                         char stat[100];
                         sprintf(stat, "+OK %d %d\r\n", ntosend, sztosend);
                         send(newsockid, stat, strlen(stat), 0);
                     }
                     else if(strncmp(buf, "LIST", 4) == 0) {
+                        // if LIST command is given without any argument
                         if(strlen(buf) <= 5){
                             int num=1,last=0,totsz=0;
                             int szofmail[n+1];
@@ -213,6 +213,8 @@ int main(int argc, char * argv[]) {
                                     ntosend++;
                                 }
                             }
+
+                            // populating szofmail array with size of each mail
                             fseek(mailbox, 0L, SEEK_SET);
                             int linecnt = 0;
                             while(fgets(buf, MAXBUFFLEN, mailbox)){
@@ -225,9 +227,13 @@ int main(int argc, char * argv[]) {
                                     linecnt=0;
                                 }
                             }
+
+                            // sending number of mails and total size of mails
                             char list[100];
                             sprintf(list, "+OK %d messages (%d octets)\r\n", ntosend, totsz);
                             send(newsockid, list, strlen(list), 0);
+
+                            // sending size of each mail
                             for(int i=1; i<=n; i++){
                                 if(del[i] == 0){
                                     char listmsg[100];
@@ -235,12 +241,18 @@ int main(int argc, char * argv[]) {
                                     send(newsockid, listmsg, strlen(listmsg), 0);
                                 }
                             }
+
+                            // sending end of list
                             char listend[] = ".\r\n";
                             send(newsockid, listend, strlen(listend), 0);
                         }
+
+                        // if LIST command is given with an argument
                         else{
                             int num,last,szofmail;
                             sscanf(buf, "LIST %d", &num);
+
+                            // if mail number is valid and not deleted
                             if(num<=n && del[num] == 0){
                                 fseek(mailbox, 0L, SEEK_SET);
                                 int cnt=1, linecnt = 0;
@@ -260,17 +272,23 @@ int main(int argc, char * argv[]) {
                                         num++;
                                     }
                                 }
+
                                 char listmsg[100];
                                 sprintf(listmsg, "+OK %d %d\r\n", num, szofmail);
                                 send(newsockid, listmsg, strlen(listmsg), 0);
                             }
+
+                            // if mail number is invalid or deleted
                             else{
                                 char listerr[] = "-ERR no such message\r\n";
                                 send(newsockid, listerr, strlen(listerr), 0);
+                                close(newsockid);
+                                exit(0);
                             }
                         }
                     }
                     else if(strncmp(buf, "RETR", 4) == 0) {
+                        // if RETR command is given, send the mail asked for
                         int num;
                         sscanf(buf, "RETR %d", &num);
                         if(num<=n && del[num] == 0){
@@ -278,6 +296,8 @@ int main(int argc, char * argv[]) {
                             int szofmail=0, last=0, lineno=0;
                             fseek(mailbox, 0L, SEEK_SET);
                             int cnt=1, linecnt = 0;
+
+                            // populating msg array with each line of mail to be sent
                             while(fgets(buf, MAXBUFFLEN, mailbox)){
                                 linecnt++;
                                 if(cnt>num){
@@ -306,9 +326,13 @@ int main(int argc, char * argv[]) {
                                     cnt++;
                                 }
                             }
+
+                            // sending size of mail
                             char retr[100];
                             sprintf(retr, "+OK %d octets\r\n", szofmail);
                             send(newsockid, retr, strlen(retr), 0);
+
+                            // sending mail
                             for(int i=0; i<lineno; i++){
                                 send(newsockid, msg[i], strlen(msg[i]), 0);
                             }
@@ -316,39 +340,50 @@ int main(int argc, char * argv[]) {
                         else{
                             char retrerr[] = "-ERR no such message\r\n";
                             send(newsockid, retrerr, strlen(retrerr), 0);
+                            close(newsockid);
+                            exit(0);
                         }
                     }
                     else if(strncmp(buf, "DELE", 4) == 0) {
+                        // if DELE command is given, mark the mail as deleted in del array
                         int num;
                         sscanf(buf, "DELE %d", &num);
                         del[num] = 1;
+
                         char delok[100];
                         sprintf(delok, "+OK message %d deleted\r\n", num);
                         send(newsockid, delok, strlen(delok), 0);
                     }
                     else if(strncmp(buf, "RSET", 4) == 0) {
+                        // if RSET command is given, unmark all mails in del array
                         memset(del, 0, sizeof(del));
+
                         char rsetok[100];
                         sprintf(rsetok, "+OK maildrop has %d messages\r\n", n);
                         send(newsockid, rsetok, strlen(rsetok), 0);
                     }
                     else if(strncmp(buf, "QUIT", 4) == 0) {
-                        // implement QUIT
+                        // if QUIT command is given, change state to UPDATE
                         state = UPDATE;
                     }
                     else {
-                        // wrong command????    -> could give a -ERR response and close the connection
+                        // if wrong command is given, send error and close connection
+                        char wrongcmd[] = "-ERR wrong command\r\n";
+                        send(newsockid, wrongcmd, strlen(wrongcmd), 0);
+                        close(newsockid);
+                        exit(0);
                     }
                 }
                 else if(state == UPDATE){
+                    // if state is UPDATE, update the mailbox and close connection
                     int num=0;
                     for(int i=1; i<=n; i++){
                         if(del[i] == 0){
                             num++;
                         }
                     }
-                    char update[100];
-                    sprintf(update, "+OK %d messages left\r\n", num);
+
+                    // creates a temporary file with all mails except the deleted ones
                     int cnt=1;
                     FILE * tmp=fopen("tmp", "w");
                     fseek(mailbox, 0L, SEEK_SET);
@@ -360,19 +395,20 @@ int main(int argc, char * argv[]) {
                             cnt++;
                         }
                     }
-                    // make sure the code below works as intended (removes prev mailbox and replaces with new one)
+
+                    // replaces previous mailbox
                     fclose(mailbox);
                     fclose(tmp);
                     remove(filepath);
                     rename("tmp", filepath);
+
+                    // send update message and close connection
+                    char update[100];
+                    sprintf(update, "+OK POP3 server signing off (%d messages left)\r\n", num);
                     send(newsockid, update, strlen(update), 0);
                     close(newsockid);
                     exit(0);
                 }
-                else {
-                    // what to do here????  -> no need to do anything here
-                }
-
             }
         }
         else {
