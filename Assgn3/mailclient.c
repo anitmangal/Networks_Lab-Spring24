@@ -88,7 +88,7 @@ int main(int argc, char *argv[])
                     strcpy(buf, "USER ");
                     strcat(buf, username);
                     strcat(buf, "\r\n");
-                    send(sockfd, buf, MAXBUFFLEN, 0);
+                    send(sockfd, buf, strlen(buf), 0);
                     
                     myrecv(sockfd, buf, MAXBUFFLEN);      // Receive response to USER
                     printf("%s\n", buf); // debug
@@ -99,7 +99,7 @@ int main(int argc, char *argv[])
                         strcpy(buf, "PASS ");
                         strcat(buf, password);
                         strcat(buf, "\r\n");
-                        send(sockfd, buf, MAXBUFFLEN, 0);
+                        send(sockfd, buf, strlen(buf), 0);
                         printf("%s\n", buf); // debug
                         // printf("in PASS\n");    // debug
                         fflush(stdout);
@@ -113,7 +113,7 @@ int main(int argc, char *argv[])
                             while (1) {
                                 // Send STAT command
                                 strcpy(buf, "STAT\r\n");
-                                send(sockfd, buf, MAXBUFFLEN, 0);
+                                send(sockfd, buf, strlen(buf), 0);
 
                                 myrecv(sockfd, buf, MAXBUFFLEN);        // Receive response to STAT
 
@@ -137,7 +137,7 @@ int main(int argc, char *argv[])
                                     int msgmap[nummsg];                 // To map index of local mailbox to actual message number sent by server
                                     // Send LIST command
                                     strcpy(buf, "LIST\r\n");
-                                    send(sockfd, buf, MAXBUFFLEN, 0);
+                                    send(sockfd, buf, strlen(buf), 0);
 
                                     // Get response from server
                                     char msgbuf[MAXBUFFLEN];
@@ -212,7 +212,7 @@ int main(int argc, char *argv[])
                                             strcpy(buf, "RETR ");
                                             sprintf(buf+strlen(buf), "%d", msgmap[cnt]);
                                             strcat(buf, "\r\n");
-                                            send(sockfd, buf, MAXBUFFLEN, 0);
+                                            send(sockfd, buf, strlen(buf), 0);
 
                                             // Get response from server
                                             msg_ind = 0, recv_ind = 0;
@@ -306,7 +306,7 @@ int main(int argc, char *argv[])
                                                 strcpy(buf, "DELE ");
                                                 sprintf(buf+strlen(buf), "%d", mail_choice);
                                                 strcat(buf, "\r\n");
-                                                send(sockfd, buf, MAXBUFFLEN, 0);
+                                                send(sockfd, buf, strlen(buf), 0);
 
                                                 myrecv(sockfd, buf, MAXBUFFLEN);        // Receive response from server
 
@@ -317,7 +317,7 @@ int main(int argc, char *argv[])
                                         else {
                                             // Mail choice = -1, send QUIT command
                                             strcpy(buf, "QUIT\r\n");
-                                            send(sockfd, buf, MAXBUFFLEN, 0);
+                                            send(sockfd, buf, strlen(buf), 0);
 
                                             myrecv(sockfd, buf, MAXBUFFLEN);            // Receive response from server
 
