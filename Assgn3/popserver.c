@@ -221,7 +221,7 @@ int main(int argc, char * argv[]) {
                             }
                         }
                         char stat[100];
-                        sprintf(stat, "STAT+OK %d %d\r\n", ntosend, sztosend);
+                        sprintf(stat, "+OK %d %d\r\n", ntosend, sztosend);
                         send(newsockid, stat, strlen(stat), 0);
                     }
                     else if(strncmp(buf, "LIST", 4) == 0) {
@@ -247,7 +247,7 @@ int main(int argc, char * argv[]) {
                                 }
                             }
                             char list[100];
-                            sprintf(list, "LIST+OK %d messages (%d octets)\r\n", ntosend, totsz);
+                            sprintf(list, "+OK %d messages (%d octets)\r\n", ntosend, totsz);
                             send(newsockid, list, strlen(list), 0);
                             for(int i=1; i<=n; i++){
                                 if(del[i] == 0){
