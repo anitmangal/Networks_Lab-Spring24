@@ -67,6 +67,12 @@ int main(int argc, char *argv[])
         {
             case 1: {
                 // Make a TCP connection with POP3 server
+                if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+                {
+                    perror("Unable to create socket\n");
+                    exit(0);
+                }
+
                 serv_addr.sin_family = AF_INET;
                 inet_aton(argv[1], &serv_addr.sin_addr);
                 serv_addr.sin_port = htons(atoi(argv[3]));
@@ -75,6 +81,7 @@ int main(int argc, char *argv[])
                     exit(0);
                 }
                 myrecv(sockfd, buf, MAXBUFFLEN);            // Receive connection response
+                printf("%s\n", buf); // debug
                 if (strncmp(buf, "+OK", 3) == 0) {
                     // AUTHORIZATION state
                     // Send USER command
@@ -84,6 +91,8 @@ int main(int argc, char *argv[])
                     send(sockfd, buf, MAXBUFFLEN, 0);
                     
                     myrecv(sockfd, buf, MAXBUFFLEN);      // Receive response to USER
+                    printf("%s\n", buf); // debug
+                    fflush(stdout);
 
                     if (strncmp(buf, "+OK", 3) == 0) {
                         // Send PASS command
@@ -91,8 +100,13 @@ int main(int argc, char *argv[])
                         strcat(buf, password);
                         strcat(buf, "\r\n");
                         send(sockfd, buf, MAXBUFFLEN, 0);
+                        printf("%s\n", buf); // debug
+                        // printf("in PASS\n");    // debug
+                        fflush(stdout);
 
                         myrecv(sockfd, buf, MAXBUFFLEN);        // Receive response to PASS
+                        printf("hey%smama\n", buf); // debug
+                        fflush(stdout);
 
                         if (strncmp(buf, "+OK", 3) == 0) {
                             // TRANSACTION state
@@ -331,12 +345,13 @@ int main(int argc, char *argv[])
                         }
                     }
                     else {
-                        perror("Username authentication error.\n");
+                        perror("Username authentication error.\n");     // should we send quit command????
                     }
                 }
                 else {
                     perror("Error occured after connection.\n");
                 }
+                break;
             }
             case 2:
             {
