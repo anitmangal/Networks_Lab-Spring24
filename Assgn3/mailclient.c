@@ -260,8 +260,10 @@ int main(int argc, char *argv[])
                                                 
                                                 char * token = strtok(mailbox[cnt], "\r\n");
                                                 msg_ind = 0;
-                                                while (token[msg_ind] != ' ') msg_ind++;
-                                                strcpy(from, token+msg_ind+1);
+                                                while (token[msg_ind] != ':') msg_ind++;
+                                                msg_ind++;
+                                                while(token[msg_ind] == ' ') msg_ind++;
+                                                strcpy(from, token+msg_ind);
 
                                                 token = strtok(NULL, "\r\n");
                                                 token = strtok(NULL, "\r\n");
