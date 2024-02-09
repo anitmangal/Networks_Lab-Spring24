@@ -423,6 +423,8 @@ int main(int argc, char * argv[]) {
                     char update[100];
                     sprintf(update, "+OK POP3 server signing off (%d messages left)\r\n", num);
                     send(newsockid, update, strlen(update), 0);
+                    char goodbye[] = "Goodbye\r\n";
+                    send(newsockid, goodbye, strlen(goodbye), 0);
                     close(newsockid);
                     exit(0);
                 }
