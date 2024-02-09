@@ -294,14 +294,14 @@ int main(int argc, char * argv[]) {
                                     exit(0);
                                 }
                                 else {
-                                    strcpy(buf, "500 Syntax error, command unrecognised\r\n");
+                                    strcpy(buf, "500 Syntax error, expected QUIT\r\n");
                                     send(newsockid, buf, strlen(buf), 0);       // Send error message
                                     close(newsockid);                           // Close connection
                                     exit(0);
                                 }
                             }
                             else {
-                                strcpy(buf, "500 Syntax error, command unrecognised\r\n");
+                                strcpy(buf, "500 Syntax error, expected DATA\r\n");
                                 send(newsockid, buf, strlen(buf), 0);           // Send error message
                                 close(newsockid);                               // Close connection
                                 exit(0);
@@ -309,21 +309,21 @@ int main(int argc, char * argv[]) {
                         }
                     }
                     else {
-                        strcpy(buf, "500 Syntax error, command unrecognised\r\n");
+                        strcpy(buf, "500 Syntax error, expected RCPT TO\r\n");
                         send(newsockid, buf, strlen(buf), 0);               // Send error message
                         close(newsockid);                                   // Close connection
                         exit(0);
                     }
                 }
                 else {
-                    strcpy(buf, "500 Syntax error, command unrecognised\r\n");
+                    strcpy(buf, "500 Syntax error, expected MAIL FROM\r\n");
                     send(newsockid, buf, strlen(buf), 0);                   // Send error message
                     close(newsockid);                                       // Close connection
                     exit(0);
                 }
             }
             else {
-                strcpy(buf, "500 Syntax error, command unrecognised\r\n");
+                strcpy(buf, "500 Syntax error, expected HELO\r\n");
                 send(newsockid, buf, strlen(buf), 0);                       // Send error message
                 close(newsockid);                                           // Close connection
                 exit(0);

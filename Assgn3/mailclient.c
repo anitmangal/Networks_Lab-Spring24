@@ -642,25 +642,28 @@ int main(int argc, char *argv[])
                                         if(!strncmp(buf,"221",3)){
                                             printf("Mail sent successfully!\n");
                                         }
+                                        else{
+                                            printf("Error occured: Expected 221!\n");
+                                        }
                                     }
                                     else{
-                                        printf("Error occured!\n");
+                                        printf("Error occured: Expecetd 250!\n");
                                     }
                                 }
                                 else{
-                                    printf("Error occured!\n");
+                                    printf("Error occured: Expected 354!\n");
                                 }
                             }
                             else{
-                                printf("Error occured!\n");
+                                printf("Error occured: Expected 250!\n");
                             }
                         }
                         else{
-                            printf("Error occured!\n");
+                            printf("Error occured: Expected 250!\n");
                         }
                     }
                     else{
-                        printf("Error occured!\n");
+                        printf("Error occured: Expected 250!\n");
                     }
                 }
                 else{
