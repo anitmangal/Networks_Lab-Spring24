@@ -28,7 +28,23 @@ void myrecv(int sockid, char * buf, int len) {
         }
         else {
             msgbuf[msgind] = '\0';
-            if (recv_ind == recvbytes-1) recv(sockid, buf, len, 0);             // Edge case: if \r is at the end of last recv, expect a \n next. So, skip it.
+            if (recv_ind == recvbytes-1) {
+                while (recv(sockid, buf, len, 0) <= 0);             // Edge case: if \r is at the end of last recv, expect a \n next. So, skip it.
+                if (buf[0] != '\n') {
+                    msgbuf[msgind] = '\r';
+                    msgind++;
+                    recv_ind = 0;
+                    continue;
+                }
+            }
+            else {
+                if (buf[recv_ind+1] != '\n') {
+                    msgbuf[msgind] = '\r';
+                    msgind++;
+                    recv_ind++;
+                    continue;
+                }
+            }
             break;
         }
     }
@@ -146,7 +162,7 @@ int main(int argc, char *argv[])
                                             msgbuf[msg_ind] = '\0';
                                             // Edge case: if \r is at the end of last recv, expect a \n next. So, skip it.
                                             if (recv_ind == recvbytes-1) {
-                                                recvbytes = recv(sockfd, buf, MAXBUFFLEN, 0);
+                                                while (recvbytes = recv(sockfd, buf, MAXBUFFLEN, 0) <= 0);
                                                 recv_ind = 1;
                                             }
                                             else recv_ind += 2;

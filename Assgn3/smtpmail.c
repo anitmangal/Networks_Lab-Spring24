@@ -27,7 +27,23 @@ void myrecv(int sockid, char * buf, int len) {
         }
         else {
             msgbuf[msgind] = '\0';
-            if (recv_ind == recvbytes-1) recv(sockid, buf, 100, 0);             // Edge case: if \r is at the end of last recv, expect a \n next. So, skip it.
+            if (recv_ind == recvbytes-1) {
+                while (recv(sockid, buf, len, 0) <= 0);             // Edge case: if \r is at the end of last recv, expect a \n next. So, skip it.
+                if (buf[0] != '\n') {
+                    msgbuf[msgind] = '\r';
+                    msgind++;
+                    recv_ind = 0;
+                    continue;
+                }
+            }
+            else {
+                if (buf[recv_ind+1] != '\n') {
+                    msgbuf[msgind] = '\r';
+                    msgind++;
+                    recv_ind++;
+                    continue;
+                }
+            }
             break;
         }
     }
@@ -176,15 +192,35 @@ int main(int argc, char * argv[]) {
                                     }
                                     else {
                                         writebuf[write_ind] = '\0';
-                                        fprintf(f, "%s\n", writebuf);
-                                        write_ind = 0;
-                                        // Edge case: if \r is at the end of last recv, expect a \n next. So, skip it.
                                         if (recv_ind == recvbytes-1) {
-                                            recvbytes = recv(newsockid, buf, 100, 0);
-                                            recv_ind = 1;
+                                            while ((recvbytes = recv(sockid, buf, 100, 0)) <= 0);             // Edge case: if \r is at the end of last recv, expect a \n next. So, skip it.
+                                            if (buf[0] != '\n') {
+                                                writebuf[write_ind] = '\r';
+                                                write_ind++;
+                                                recv_ind = 0;
+                                                continue;
+                                            }
+                                            else {
+                                                recv_ind = 1;
+                                                cnt++;
+                                                fprintf(f, "%s\n", writebuf);
+                                                write_ind = 0;
+                                            }
                                         }
-                                        else recv_ind += 2;
-                                        cnt++;
+                                        else {
+                                            if (buf[recv_ind+1] != '\n') {
+                                                writebuf[write_ind] = '\r';
+                                                write_ind++;
+                                                recv_ind++;
+                                                continue;
+                                            }
+                                            else {
+                                                recv_ind += 2;
+                                                cnt++;
+                                                fprintf(f, "%s\n", writebuf);
+                                                write_ind = 0;
+                                            }
+                                        }
                                     }
                                 }
 
@@ -210,18 +246,39 @@ int main(int argc, char * argv[]) {
                                     }
                                     else {
                                         writebuf[write_ind] = '\0';
-                                        if (recv_ind == recvbytes-1) recv(newsockid, buf, 100, 0);
-                                        fprintf(f, "%s\n", writebuf);
-                                        if (write_ind == 1 && writebuf[0] == '.') {
-                                            break;
-                                        }
-                                        write_ind = 0;
-                                        // Edge case: if \r is at the end of last recv, expect a \n next. So, skip it.
                                         if (recv_ind == recvbytes-1) {
-                                            recvbytes = recv(newsockid, buf, 100, 0);
-                                            recv_ind = 1;
+                                            while ((recvbytes = recv(sockid, buf, 100, 0)) <= 0);             // Edge case: if \r is at the end of last recv, expect a \n next. So, skip it.
+                                            if (buf[0] != '\n') {
+                                                writebuf[write_ind] = '\r';
+                                                write_ind++;
+                                                recv_ind = 0;
+                                                continue;
+                                            }
+                                            else {
+                                                fprintf(f, "%s\n", writebuf);
+                                                if (strcmp(writebuf, ".") == 0) {
+                                                    break;
+                                                }
+                                                write_ind = 0;
+                                                recv_ind = 1;
+                                            }
                                         }
-                                        else recv_ind += 2;
+                                        else {
+                                            if (buf[recv_ind+1] != '\n') {
+                                                writebuf[write_ind] = '\r';
+                                                write_ind++;
+                                                recv_ind++;
+                                                continue;
+                                            }
+                                            else {
+                                                fprintf(f, "%s\n", writebuf);
+                                                if (strcmp(writebuf, ".") == 0) {
+                                                    break;
+                                                }
+                                                write_ind = 0;
+                                                recv_ind += 2;
+                                            }
+                                        }
                                     }
                                 }
 
