@@ -377,9 +377,9 @@ int main(int argc, char *argv[])
             {
 
                 char *from, *to, *subject, *body[50];
-                from = (char*)malloc(100*sizeof(char));
-                to = (char*)malloc(100*sizeof(char));
-                subject = (char*)malloc(100*sizeof(char));
+                from = (char*)malloc(MAXBUFFLEN*sizeof(char));
+                to = (char*)malloc(MAXBUFFLEN*sizeof(char));
+                subject = (char*)malloc(MAXBUFFLEN*sizeof(char));
 
                 scanf("%c", &tmp);          // to consume the \n after the choice
                 printf("Enter the mail:\n");
@@ -412,14 +412,14 @@ int main(int argc, char *argv[])
                     break;
                 }
                 int f=1;
-                for(int i=6;i<100;i++)
+                for(int i=6;i<MAXBUFFLEN;i++)
                 {
                     if(from[i]=='@'&&from[i-1]==' '){
                         printf("Enter valid mail!\n");
                         f=0;
                         break;
                     }
-                    if(i==99){
+                    if(i==MAXBUFFLEN-1){
                         printf("Enter valid mail!\n");
                         f=0;
                         break;
@@ -431,7 +431,7 @@ int main(int argc, char *argv[])
                 if(f==0){
                     break;
                 }
-                for(int i=0; i<100; i++)
+                for(int i=0; i<MAXBUFFLEN; i++)
                 {
                     if(from[i]=='\n')
                     {
@@ -446,14 +446,14 @@ int main(int argc, char *argv[])
                     break;
                 }
                 f=1;
-                for(int i=4;i<100;i++)
+                for(int i=4;i<MAXBUFFLEN;i++)
                 {
                     if(to[i]=='@'&&to[i-1]==' '){
                         printf("Enter valid mail!\n");
                         f=0;
                         break;
                     }
-                    if(i==99){
+                    if(i==MAXBUFFLEN-1){
                         printf("Enter valid mail!\n");
                         f=0;
                         break;
@@ -465,7 +465,7 @@ int main(int argc, char *argv[])
                 if(f==0){
                     break;
                 }
-                for(int i=0; i<100; i++)
+                for(int i=0; i<MAXBUFFLEN; i++)
                 {
                     if(to[i]=='\n')
                     {
@@ -479,7 +479,7 @@ int main(int argc, char *argv[])
                     printf("Enter valid mail!\n");
                     break;
                 }
-                for(int i=0; i<100; i++)
+                for(int i=0; i<MAXBUFFLEN; i++)
                 {
                     if(subject[i]=='\n')
                     {
@@ -540,7 +540,7 @@ int main(int argc, char *argv[])
                         //from
                         strcpy(buf, "MAIL FROM:<");
                         int i;
-                        for(i=6;i<100;i++){
+                        for(i=6;i<MAXBUFFLEN;i++){
                             if(from[i]!=' '){
                                 break;
                             }
@@ -554,7 +554,7 @@ int main(int argc, char *argv[])
                         if(!strncmp(buf,"250",3)){
                             //to
                             strcpy(buf, "RCPT TO:<");
-                            for(i=4;i<100;i++){
+                            for(i=4;i<MAXBUFFLEN;i++){
                                 if(to[i]!=' '){
                                     break;
                                 }
@@ -573,7 +573,7 @@ int main(int argc, char *argv[])
                                 myrecv(sockfd, buf, MAXBUFFLEN);
                                 if(!strncmp(buf,"354",3)){
                                     // sending mail data
-                                    for(int i=0; i<100; i++)        //the 3 loops are for adding <CR><LF> at the end of each line
+                                    for(int i=0; i<MAXBUFFLEN; i++)        //the 3 loops are for adding <CR><LF> at the end of each line
                                     {
                                         if(from[i]=='\0')
                                         {
@@ -584,7 +584,7 @@ int main(int argc, char *argv[])
                                         }
                                     }
 
-                                    for(int i=0; i<100; i++)
+                                    for(int i=0; i<MAXBUFFLEN; i++)
                                     {
                                         if(to[i]=='\0')
                                         {
@@ -595,7 +595,7 @@ int main(int argc, char *argv[])
                                         }
                                     }
 
-                                    for(int i=0; i<100; i++)
+                                    for(int i=0; i<MAXBUFFLEN; i++)
                                     {
                                         if(subject[i]=='\0')
                                         {
