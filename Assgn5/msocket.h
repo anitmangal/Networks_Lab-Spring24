@@ -24,7 +24,15 @@
 struct sembuf pop, vop;
 
 struct window {
-    int wndw[16];               // -1: Sent-Acknowledged, NotSent, i: Sent-NotAcknowledged, ith message in send buffer for send window. 0: NotExpected, 1: Expected for receive window
+    int wndw[16];
+    /*
+    SEND WINDOW - 
+        -1: NotSent, Sent-Acknowledged
+        i: Sent-NotAcknowledged, ith message in send buffer for send window.
+    RECEIVE WINDOW -
+        -1: Not Expected
+        i: Expected, ith message in receive buffer for receive window.
+    */
     int size;
     int start_seq;              // start sequence number of the window
 };
@@ -38,7 +46,7 @@ struct SM_entry {
     uint16_t port;             // (iv) Port address of the other end of the MTP socket
     char send_buffer[10][1024];    // (v) send buffer
     char recv_buffer[5][1024];    // (vi) receive buffer
-    int send_buffer_valid[10]; // If the message at index i in send_buffer is valid or not
+    // int send_buffer_valid[10]; // If the message at index i in send_buffer is valid or not
     int recv_buffer_valid[5];  // If the message at index i in recv_buffer is valid or not
     struct window swnd;        // (vii) send window
     struct window rwnd;        // (viii) receive window

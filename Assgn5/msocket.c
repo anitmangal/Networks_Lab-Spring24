@@ -139,7 +139,8 @@ ssize_t m_sendto(int m_sockfd, const void *buf, size_t len, int flags,
 ssize_t m_recvfrom(int sockfd, void *buf, size_t len, int flags,
                    struct sockaddr *src_addr, socklen_t *addrlen) {
     // Implement as needed
-    return recvfrom(((struct MSocket *)sockfd)->udp_socket, buf, len, flags, src_addr, addrlen);
+    // return recvfrom((struct MSocket *)sockfd)->udp_socket, buf, len, flags, src_addr, addrlen);
+    return 0;
 }
 
 int m_close(int sockfd) {

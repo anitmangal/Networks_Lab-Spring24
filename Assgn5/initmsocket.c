@@ -41,7 +41,7 @@ void R() {
     while (1) {
         fd_set readyfds = readfds;
         struct timeval tv;
-        tv.tv_sec = 10;
+        tv.tv_sec = T;
         tv.tv_usec = 0;
         int retval = select(nfds + 1, &readyfds, NULL, NULL, &tv);
 
@@ -97,10 +97,10 @@ void R() {
                             // ACK
                             int seq = (buffer[1]-'0')*8 + (buffer[2]-'0')*4 + (buffer[3]-'0')*2 + (buffer[4]-'0');
                             int rwnd = (buffer[5]-'0')*4 + (buffer[6]-'0')*2 + (buffer[7]-'0');
-                            if (SM[i].swnd.wndw[seq]) {
+                            if (SM[i].swnd.wndw[seq] >= 0) {
                                 int j = SM[i].swnd.start_seq;
                                 while (j != seq) {
-                                    SM[i].swnd.wndw[j] = 0;
+                                    SM[i].swnd.wndw[j] = -1;
                                     j = (j+1)%16;
                                 }
                                 SM[i].swnd.start_seq = (seq+1)%16;
@@ -111,24 +111,44 @@ void R() {
                             // DATA
                             int seq = (buffer[1]-'0')*8 + (buffer[2]-'0')*4 + (buffer[3]-'0')*2 + (buffer[4]-'0');
                             if (seq == SM[i].rwnd.start_seq) {
-                                int nextseq = (SM[i].rwnd.start_seq+1)%16;
-                                SM[i].rwnd.start_seq = nextseq;
-                                SM[i].rwnd.size = (SM[i].rwnd.size+1)%16;
-                                strcpy(SM[i].recv_buffer[seq], buffer+5);
-                                SM[i].recv_buffer_valid[seq] = 1;
+                                // In order message
+                                int buff_ind = SM[i].rwnd.wndw[seq];
+                                strncpy(SM[i].recv_buffer[buff_ind], buffer+5, 1024);
+                                SM[i].recv_buffer_valid[buff_ind] = 1;
+                                SM[i].rwnd.size--;
+                                // Find the next in order message
+                                while (SM[i].rwnd.wndw[SM[i].rwnd.start_seq] >= 0 && SM[i].recv_buffer_valid[SM[i].rwnd.wndw[SM[i].rwnd.start_seq]] == 1) {
+                                    SM[i].rwnd.start_seq = (SM[i].rwnd.start_seq+1)%16;
+                                }
                             }
                             else {
-                                // Send ACK for the last received sequence number
-                                int lastseq = ((SM[i].rwnd.start_seq+16)-1)%16;     // Last acknowledged sequence number
-                                struct sockaddr_in cliaddr;
-                                cliaddr.sin_family = AF_INET;
-                                inet_aton(SM[i].ip_address, &cliaddr.sin_addr);
-                                cliaddr.sin_port = htons(SM[i].port);
-
-                                char ack[8];
-                                ack[0] = '0';
-                                ack[1] = (lastseq>>3)%2 + '0';
-                                ack[2] = (lastseq
+                                // Keep out of order message if in rwnd, else discard. If duplicate, discard.
+                                if (SM[i].rwnd.wndw[seq] >= 0 && !SM[i].recv_buffer_valid[SM[i].rwnd.wndw[seq]]) {
+                                    int buff_ind = SM[i].rwnd.wndw[seq];
+                                    strncpy(SM[i].recv_buffer[buff_ind], buffer+5, 1024);
+                                    SM[i].recv_buffer_valid[buff_ind] = 1;
+                                    SM[i].rwnd.size--;
+                                }
+                            }
+                            // Nospace
+                            if (SM[i].rwnd.size == 0) {
+                                SM[i].nospace = 1;
+                            }
+                            // Send ACK
+                            seq = (SM[i].rwnd.start_seq+16-1)%16;
+                            char ack[8];
+                            ack[0] = '0';
+                            ack[1] = (seq>>3)%2 + '0';
+                            ack[2] = (seq>>2)%2 + '0';
+                            ack[3] = (seq>>1)%2 + '0';
+                            ack[4] = (seq)%2 + '0';
+                            ack[5] = (SM[i].rwnd.size>>2)%2 + '0';
+                            ack[6] = (SM[i].rwnd.size>>1)%2 + '0';
+                            ack[7] = (SM[i].rwnd.size)%2 + '0';
+                            sendto(SM[i].udp_socket_id, ack, 8, 0, (struct sockaddr *)&cliaddr, sizeof(cliaddr));
+                        }
+                    }
+                }
             }
             V(sem_SM);
         }
@@ -175,14 +195,14 @@ int main(){
 
     // create shared memory
     shmid_sock_info=shmget(IPC_PRIVATE, sizeof(SOCK_INFO), 0666|IPC_CREAT);
-    // shmid_SM=shmget(IPC_PRIVATE, sizeof(struct SM_entry)*N, 0666|IPC_CREAT);
+    shmid_SM=shmget(IPC_PRIVATE, sizeof(struct SM_entry)*N, 0666|IPC_CREAT);
     sem1=semget(IPC_PRIVATE, 1, 0666|IPC_CREAT);
     sem2=semget(IPC_PRIVATE, 1, 0666|IPC_CREAT);
     sem_SM=semget(IPC_PRIVATE, 1, 0666|IPC_CREAT);
     sem_sock_info=semget(IPC_PRIVATE, 1, 0666|IPC_CREAT);
 
     sock_info=(SOCK_INFO *)shmat(shmid_sock_info, 0, 0);
-    // SM=(struct SM_entry *)shmat(shmid_SM, 0, 0);
+    SM=(struct SM_entry *)shmat(shmid_SM, 0, 0);
 
     //initialising shared memory
     sock_info->sock_id=0;
