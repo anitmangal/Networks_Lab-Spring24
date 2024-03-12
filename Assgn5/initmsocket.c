@@ -29,6 +29,7 @@ void sigHandler(int sig){
     shmdt(sock_info);
     shmdt(SM);
     shmctl(shmid_sock_info, IPC_RMID, NULL);
+    shmctl(shmid_SM, IPC_RMID, NULL);
     semctl(sem1, 0, IPC_RMID);
     semctl(sem2, 0, IPC_RMID);
     semctl(sem_SM, 0, IPC_RMID);
