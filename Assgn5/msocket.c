@@ -13,20 +13,33 @@ struct MSocket {
 // Global error variable
 int msocket_errno = 0;
 
-// Function to check if a free entry is available in SM (replace with your logic)
+// Shared memory structure
+struct SM_entry SM[N];
+SOCK_INFO sock_info;
+
+// semaphore things
+int sem1, sem2;
+struct sembuf pop, vop;
+                   
+#define P(s) semop(s, &pop, 1)  /* pop is the structure we pass for doing
+				   the P(s) operation */
+#define V(s) semop(s, &vop, 1)  /* vop is the structure we pass for doing
+				   the V(s) operation */
+
+// Function to check if a free entry is available in SM
 static int is_free_entry_available() {
     for(int i=0;i<25;i++){
         if(SM[i].is_free==1){
-            return 1;
+            return i;
         }
     }
-    return 0;
+    return -1;
 }
 
 // Function to initialize SM with corresponding entries (replace with your logic)
 static void initialize_SM_entry(struct MSocket *msock) {
     int i=0;
-    for(i=0;i<25;i++){
+    for(i=0;i<N;i++){
         if(SM[i].is_free==1){
             SM[i].is_free=0;
             SM[i].process_id=getpid();
@@ -42,39 +55,86 @@ int m_socket(int domain, int type, int protocol) {
         msocket_errno = EINVAL;
         return -1;
     }
+    
+    int i;
 
-    if (!is_free_entry_available()) {
+    if ((i=is_free_entry_available())==-1) {
         msocket_errno = ENOBUFS;
+        msocket_errno = sock_info.err_no;
+        sock_info.sock_id=0;
+        sock_info.err_no=0;
+        sock_info.ip_address[0]='\0';
+        sock_info.port=0;
         return -1;
     }
 
-    int udp_socket = socket(domain, SOCK_DGRAM, protocol);
-    if (udp_socket == -1) {
-        msocket_errno = errno;
+    V(sem1);
+
+    P(sem2);
+
+    if(sock_info.sock_id==-1){
+        msocket_errno = sock_info.err_no;
         return -1;
     }
 
-    // Allocate memory for MSocket structure
-    struct MSocket *msock = (struct MSocket *)malloc(sizeof(struct MSocket));
-    if (msock == NULL) {
-        msocket_errno = ENOMEM;
-        close(udp_socket);
-        return -1;
-    }
+    SM[i].is_free=0;
+    SM[i].process_id=getpid();
+    SM[i].udp_socket_id=sock_info.sock_id;
+    
+    // resetting sock_info
+    sock_info.sock_id=0;
+    sock_info.err_no=0;
+    sock_info.ip_address[0]='\0';
+    sock_info.port=0;
 
-    // Initialize MSocket structure
-    msock->udp_socket = udp_socket;
-
-    // Initialize SM with corresponding entries (replace with your logic)
-    initialize_SM_entry(msock);
-
-    // Return the MTP socket descriptor
-    return (int)msock;
+    return i;
 }
 
-int m_bind(int sockfd, const struct sockaddr *addr, socklen_t addrlen) {
-    // Implement as needed
-    return bind(((struct MSocket *)sockfd)->udp_socket, addr, addrlen);
+int m_bind(char src_ip[], uint16_t src_port, char dest_ip[], uint16_t dest_port) {
+    int sockfd=-1;
+    for(int i=0;i<25;i++){
+        if(SM[i].is_free==0 && SM[i].process_id==getpid()){
+            sockfd=i;
+            break;
+        }
+    }
+
+    // should never execute... just for safety
+    if(sockfd==-1){
+        msocket_errno = ENOBUFS;
+        sock_info.sock_id=0;
+        sock_info.err_no=0;
+        sock_info.ip_address[0]='\0';
+        sock_info.port=0;
+        return -1;
+    }
+
+    sock_info.sock_id=SM[sockfd].udp_socket_id;
+    strcpy(sock_info.ip_address, src_ip);
+    sock_info.port=src_port;
+
+    V(sem1);
+
+    P(sem2);
+
+    if(sock_info.sock_id==-1){
+        msocket_errno = sock_info.err_no;
+        sock_info.sock_id=0;
+        sock_info.err_no=0;
+        sock_info.ip_address[0]='\0';
+        sock_info.port=0;
+        return -1;
+    }
+
+    strcpy(SM[sockfd].ip_address, dest_ip);
+    SM[sockfd].port=dest_port;
+
+    sock_info.sock_id=0;
+    sock_info.err_no=0;
+    sock_info.ip_address[0]='\0';
+    sock_info.port=0;
+
+    return 0;
 }
 
 ssize_t m_sendto(int sockfd, const void *buf, size_t len, int flags,

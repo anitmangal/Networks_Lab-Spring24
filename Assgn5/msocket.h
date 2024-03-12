@@ -12,9 +12,8 @@
 // defining T
 #define T 5
 #define p 0.05
+#define N 25
 
-// Global error variable
-extern int msocket_errno;
 
 struct window {
     int wndw[16];               // 0: Sent-Acknowledged, NotSent, 1: Sent-NotAcknowledged for send window. 0: NotExpected, 1: Expected for receive window
@@ -37,12 +36,19 @@ struct SM_entry {
     struct timeval lastSendTime;      // last message send time
 };
 
+
+
 typedef struct SOCK_INFO{
     int sock_id;
     char ip_address[16];
     uint16_t port;
     int err_no;
 } SOCK_INFO;
+
+// Global variables
+extern int msocket_errno;
+extern struct SM_entry SM[N];
+extern SOCK_INFO sock_info;
 
 // Function prototypes
 int m_socket(int domain, int type, int protocol);

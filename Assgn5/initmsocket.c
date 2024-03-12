@@ -13,15 +13,9 @@
 // pthread_cond_t cond1, cond2;
 // int wait1, wait2;
 
-#define P(s) semop(s, &pop, 1)  /* pop is the structure we pass for doing
-				   the P(s) operation */
-#define V(s) semop(s, &vop, 1)  /* vop is the structure we pass for doing
-				   the V(s) operation */
-
 
 int shmid_sock_info;
-int sem1, sem2;
-struct sembuf pop, vop;
+
 /*
 
     Each message will have a 5 bit header. 1 bit for type (0 = ACK, 1 = DATA), 4 bit for sequence number.
@@ -38,8 +32,6 @@ int main(){
     pop.sem_num = vop.sem_num = 0;
 	pop.sem_flg = vop.sem_flg = 0;
 	pop.sem_op = -1 ; vop.sem_op = 1;
-
-    SOCK_INFO *sock_info;
 
     // create shared memory
     shmid_sock_info=shmget(key_sock_info, sizeof(SOCK_INFO), 0666|IPC_CREAT);
