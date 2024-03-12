@@ -15,19 +15,15 @@ int msocket_errno = 0;
 
 // Shared memory structure
 struct SM_entry SM[N];
-SOCK_INFO sock_info;
+SOCK_INFO * sock_info;
 
-// semaphore things
+// semaphore and shared memory variables
 int sem1, sem2;
-struct sembuf pop, vop;
-                   
-#define P(s) semop(s, &pop, 1)  /* pop is the structure we pass for doing
-				   the P(s) operation */
-#define V(s) semop(s, &vop, 1)  /* vop is the structure we pass for doing
-				   the V(s) operation */
+int sem_sock_info, sem_SM;
+int shmid_sock_info, shmid_SM;
 
 // Function to check if a free entry is available in SM
-static int is_free_entry_available() {
+int is_free_entry_available() {
     for(int i=0;i<25;i++){
         if(SM[i].is_free==1){
             return i;
@@ -37,7 +33,7 @@ static int is_free_entry_available() {
 }
 
 // Function to initialize SM with corresponding entries (replace with your logic)
-static void initialize_SM_entry(struct MSocket *msock) {
+void initialize_SM_entry(struct MSocket *msock) {
     int i=0;
     for(i=0;i<N;i++){
         if(SM[i].is_free==1){
@@ -60,11 +56,11 @@ int m_socket(int domain, int type, int protocol) {
 
     if ((i=is_free_entry_available())==-1) {
         msocket_errno = ENOBUFS;
-        msocket_errno = sock_info.err_no;
-        sock_info.sock_id=0;
-        sock_info.err_no=0;
-        sock_info.ip_address[0]='\0';
-        sock_info.port=0;
+        msocket_errno = sock_info->err_no;
+        sock_info->sock_id=0;
+        sock_info->err_no=0;
+        sock_info->ip_address[0]='\0';
+        sock_info->port=0;
         return -1;
     }
 
@@ -72,20 +68,20 @@ int m_socket(int domain, int type, int protocol) {
 
     P(sem2);
 
-    if(sock_info.sock_id==-1){
-        msocket_errno = sock_info.err_no;
+    if(sock_info->sock_id==-1){
+        msocket_errno = sock_info->err_no;
         return -1;
     }
 
     SM[i].is_free=0;
     SM[i].process_id=getpid();
-    SM[i].udp_socket_id=sock_info.sock_id;
+    SM[i].udp_socket_id=sock_info->sock_id;
     
     // resetting sock_info
-    sock_info.sock_id=0;
-    sock_info.err_no=0;
-    sock_info.ip_address[0]='\0';
-    sock_info.port=0;
+    sock_info->sock_id=0;
+    sock_info->err_no=0;
+    sock_info->ip_address[0]='\0';
+    sock_info->port=0;
 
     return i;
 }
@@ -102,37 +98,37 @@ int m_bind(char src_ip[], uint16_t src_port, char dest_ip[], uint16_t dest_port)
     // should never execute... just for safety
     if(sockfd==-1){
         msocket_errno = ENOBUFS;
-        sock_info.sock_id=0;
-        sock_info.err_no=0;
-        sock_info.ip_address[0]='\0';
-        sock_info.port=0;
+        sock_info->sock_id=0;
+        sock_info->err_no=0;
+        sock_info->ip_address[0]='\0';
+        sock_info->port=0;
         return -1;
     }
 
-    sock_info.sock_id=SM[sockfd].udp_socket_id;
-    strcpy(sock_info.ip_address, src_ip);
-    sock_info.port=src_port;
+    sock_info->sock_id=SM[sockfd].udp_socket_id;
+    strcpy(sock_info->ip_address, src_ip);
+    sock_info->port=src_port;
 
     V(sem1);
 
     P(sem2);
 
-    if(sock_info.sock_id==-1){
-        msocket_errno = sock_info.err_no;
-        sock_info.sock_id=0;
-        sock_info.err_no=0;
-        sock_info.ip_address[0]='\0';
-        sock_info.port=0;
+    if(sock_info->sock_id==-1){
+        msocket_errno = sock_info->err_no;
+        sock_info->sock_id=0;
+        sock_info->err_no=0;
+        sock_info->ip_address[0]='\0';
+        sock_info->port=0;
         return -1;
     }
 
     strcpy(SM[sockfd].ip_address, dest_ip);
     SM[sockfd].port=dest_port;
 
-    sock_info.sock_id=0;
-    sock_info.err_no=0;
-    sock_info.ip_address[0]='\0';
-    sock_info.port=0;
+    sock_info->sock_id=0;
+    sock_info->err_no=0;
+    sock_info->ip_address[0]='\0';
+    sock_info->port=0;
 
     return 0;
 }

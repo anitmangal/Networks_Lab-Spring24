@@ -13,7 +13,13 @@
 #define T 5
 #define p 0.05
 #define N 25    
+                   
+#define P(s) semop(s, &pop, 1)  /* pop is the structure we pass for doing
+				   the P(s) operation */
+#define V(s) semop(s, &vop, 1)  /* vop is the structure we pass for doing
+				   the V(s) operation */
 
+struct sembuf pop, vop;
 
 struct window {
     int wndw[16];               // 0: Sent-Acknowledged, NotSent, 1: Sent-NotAcknowledged for send window. 0: NotExpected, 1: Expected for receive window
@@ -49,8 +55,11 @@ typedef struct SOCK_INFO{
 
 // Global variables
 extern int msocket_errno;
-extern struct SM_entry SM[N];
-extern SOCK_INFO sock_info;
+extern struct SM_entry* SM;
+extern SOCK_INFO* sock_info;
+extern int sem1, sem2;
+extern int sem_sock_info, sem_SM;
+extern int shmid_sock_info, shmid_SM;
 
 // Function prototypes
 int m_socket(int domain, int type, int protocol);

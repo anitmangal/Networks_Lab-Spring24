@@ -16,9 +16,6 @@
 // int wait1, wait2;
 
 
-int shmid_sock_info;
-int sem1, sem2;
-int sem_sock_info, sem_SM;
 struct sembuf pop, vop;
 /*
 
@@ -26,6 +23,18 @@ struct sembuf pop, vop;
     Next bits are either rwnd size (for ACK) or 1 KB data (for DATA).
 
 */
+
+void sigHandler(int sig){
+    // release resources
+    shmdt(sock_info);
+    shmdt(SM);
+    shmctl(shmid_sock_info, IPC_RMID, NULL);
+    semctl(sem1, 0, IPC_RMID);
+    semctl(sem2, 0, IPC_RMID);
+    semctl(sem_SM, 0, IPC_RMID);
+    semctl(sem_sock_info, 0, IPC_RMID);
+    exit(0);
+}
 
 void R() {
     fd_set readfds;
@@ -62,11 +71,6 @@ void R() {
 }
 
 int main(){
-    key_t key_sock_info=ftok("msocket.h", 'A');
-    key_t key_sem1=ftok("msocket.h", 'B');
-    key_t key_sem2=ftok("msocket.h", 'C');
-    key_t key_sem_SM=ftok("msocket.h", 'E');
-    key_t key_sem_sock_info=ftok("msocket.h", 'F');
 
 
     pop.sem_num = vop.sem_num = 0;
@@ -74,13 +78,15 @@ int main(){
 	pop.sem_op = -1 ; vop.sem_op = 1;
 
     // create shared memory
-    shmid_sock_info=shmget(key_sock_info, sizeof(SOCK_INFO), 0666|IPC_CREAT);
-    sem1=semget(key_sem1, 1, 0666|IPC_CREAT);
-    sem2=semget(key_sem2, 1, 0666|IPC_CREAT);
-    sem_SM=semget(key_sem_SM, 1, 0666|IPC_CREAT);
-    sem_sock_info=semget(key_sem_sock_info, 1, 0666|IPC_CREAT);
+    shmid_sock_info=shmget(IPC_PRIVATE, sizeof(SOCK_INFO), 0666|IPC_CREAT);
+    shmid_SM=shmget(IPC_PRIVATE, sizeof(struct SM_entry)*N, 0666|IPC_CREAT);
+    sem1=semget(IPC_PRIVATE, 1, 0666|IPC_CREAT);
+    sem2=semget(IPC_PRIVATE, 1, 0666|IPC_CREAT);
+    sem_SM=semget(IPC_PRIVATE, 1, 0666|IPC_CREAT);
+    sem_sock_info=semget(IPC_PRIVATE, 1, 0666|IPC_CREAT);
 
     sock_info=(SOCK_INFO *)shmat(shmid_sock_info, 0, 0);
+    SM=(struct SM_entry *)shmat(shmid_SM, 0, 0);
 
     //initialising shared memory
     sock_info->sock_id=0;
@@ -90,6 +96,8 @@ int main(){
 
     semctl(sem1, 0, SETVAL, 0);
     semctl(sem2, 0, SETVAL, 0);
+    semctl(sem_SM, 0, SETVAL, 1);
+    semctl(sem_sock_info, SETVAL, 1);
 
     // create threads S, R, etc.
 
