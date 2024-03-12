@@ -94,3 +94,9 @@ int m_close(int sockfd) {
     free((struct MSocket *)sockfd);
     return result;
 }
+
+int dropMessage() {
+    float r = (float)rand() / (float)RAND_MAX;
+    if (r < p) return 1;
+    return 0;
+}

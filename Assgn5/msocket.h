@@ -4,15 +4,23 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <stdint.h> 
+#include <sys/time.h>
 
 // Custom socket type for MTP
 #define SOCK_MTP 3
 
 // defining T
 #define T 5
+#define p 0.05
 
 // Global error variable
 extern int msocket_errno;
+
+struct window {
+    int wndw[16];               // 0: Sent-Acknowledged, NotSent, 1: Sent-NotAcknowledged for send window. 0: NotExpected, 1: Expected for receive window
+    int size;
+    int start_seq;              // start sequence number of the window
+};
 
 // SM structure
 struct SM_entry {
@@ -23,7 +31,10 @@ struct SM_entry {
     uint16_t port;             // (iv) Port address of the other end of the MTP socket
     char send_buffer[10240];    // (v) send buffer
     char recv_buffer[5120];    // (vi) receive buffer
-    // (vii) and (viii) should be replaced with actual structures
+    struct window swnd;        // (vii) send window
+    struct window rwnd;        // (viii) receive window
+    int nospace;               // whether receive buffer has space or not
+    struct timeval lastSendTime;      // last message send time
 };
 
 typedef struct SOCK_INFO{
@@ -41,5 +52,6 @@ ssize_t m_sendto(int sockfd, const void *buf, size_t len, int flags,
 ssize_t m_recvfrom(int sockfd, void *buf, size_t len, int flags,
                    struct sockaddr *src_addr, socklen_t *addrlen);
 int m_close(int sockfd);
+int dropMessage();
 
 #endif  // MSOCKET_H

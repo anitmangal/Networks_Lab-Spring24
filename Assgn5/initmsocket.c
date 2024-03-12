@@ -18,25 +18,22 @@
 #define V(s) semop(s, &vop, 1)  /* vop is the structure we pass for doing
 				   the V(s) operation */
 
+
+int shmid_sock_info;
+int sem1, sem2;
+struct sembuf pop, vop;
+/*
+
+    Each message will have a 5 bit header. 1 bit for type (0 = ACK, 1 = DATA), 4 bit for sequence number.
+    Next bits are either rwnd size (for ACK) or 1 KB data (for DATA).
+
+*/
+
 int main(){
-    // pthread_mutex_init(&sem1, NULL);
-    // pthread_mutex_init(&sem2, NULL);
+    key_t key_sock_info=ftok("msocket.h", 'A');
+    key_t key_sem1=ftok("msocket.h", 'B');
+    key_t key_sem2=ftok("msocket.h", 'C');
 
-    // pthread_mutex_trylock(&sem1);
-    // pthread_mutex_unlock(&sem1);
-
-    // pthread_mutex_trylock(&sem2);
-    // pthread_mutex_unlock(&sem2);
-
-    // wait1=1;
-    // wait2=1;
-    int shmid_sock_info;
-    int sem1, sem2;
-    key_t key_sock_info=ftok("msocket.h", 65);
-    key_t key_sem1=ftok("msocket.h", 66);
-    key_t key_sem2=ftok("msocket.h", 67);
-    
-    struct sembuf pop, vop;
 
     pop.sem_num = vop.sem_num = 0;
 	pop.sem_flg = vop.sem_flg = 0;
@@ -68,7 +65,7 @@ int main(){
     while(1){
         P(sem1);
         if(sock_info->sock_id==0 && sock_info->ip_address[0]=='\0' && sock_info->port==0){
-            int sock_id=socket(AF_INET, SOCK_MTP, 0);
+            int sock_id=socket(AF_INET, SOCK_DGRAM, 0);
             if(sock_id==-1){
                 sock_info->sock_id=-1;
                 sock_info->err_no=errno;
@@ -81,8 +78,7 @@ int main(){
             struct sockaddr_in serv_addr;
             serv_addr.sin_family = AF_INET;
             serv_addr.sin_port = htons(sock_info->port);
-            //serv_addr.sin_addr.s_addr = INADDR_ANY;                       // this or
-            // inet_aton(sock_info->ip_address, &serv_addr.sin_addr);       // this?
+            inet_aton(sock_info->ip_address, &serv_addr.sin_addr);
             if(bind(sock_info->sock_id, (struct sockaddr *)&serv_addr, sizeof(serv_addr))<0){
                 sock_info->sock_id=-1;
                 sock_info->err_no=errno;
@@ -90,6 +86,8 @@ int main(){
         }
         V(sem2);
     }
+
+    // Signal handler for SIGINT to release resources
 
     return 0;
 }
