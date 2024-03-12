@@ -12,7 +12,7 @@
 // defining T
 #define T 5
 #define p 0.05
-#define N 25
+#define N 25    
 
 
 struct window {
@@ -28,8 +28,10 @@ struct SM_entry {
     int udp_socket_id;         // (iii) mapping from the MTP socket i to the corresponding UDP socket ID
     char ip_address[16];       // (iv) IP address of the other end of the MTP socket (assuming IPv4)
     uint16_t port;             // (iv) Port address of the other end of the MTP socket
-    char send_buffer[10240];    // (v) send buffer
-    char recv_buffer[5120];    // (vi) receive buffer
+    char send_buffer[10][1024];    // (v) send buffer
+    char recv_buffer[5][1024];    // (vi) receive buffer
+    int send_buffer_valid[10]; // If the message at index i in send_buffer is valid or not
+    int recv_buffer_valid[5];  // If the message at index i in recv_buffer is valid or not
     struct window swnd;        // (vii) send window
     struct window rwnd;        // (viii) receive window
     int nospace;               // whether receive buffer has space or not
