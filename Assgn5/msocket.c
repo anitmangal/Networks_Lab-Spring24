@@ -143,7 +143,9 @@ ssize_t m_recvfrom(int sockfd, void *buf, size_t len, int flags,
 }
 
 int m_close(int sockfd) {
-    
+    close(SM[sockfd].udp_socket_id);
+    SM[sockfd].is_free=1;
+    return 0;
 }
 
 int dropMessage() {

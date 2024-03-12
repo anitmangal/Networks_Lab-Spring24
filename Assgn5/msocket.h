@@ -24,7 +24,7 @@
 struct sembuf pop, vop;
 
 struct window {
-    int wndw[16];               // 0: Sent-Acknowledged, NotSent, 1: Sent-NotAcknowledged for send window. 0: NotExpected, 1: Expected for receive window
+    int wndw[16];               // -1: Sent-Acknowledged, NotSent, i: Sent-NotAcknowledged, ith message in send buffer for send window. 0: NotExpected, 1: Expected for receive window
     int size;
     int start_seq;              // start sequence number of the window
 };

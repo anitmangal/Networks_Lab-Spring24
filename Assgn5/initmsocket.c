@@ -77,19 +77,24 @@ void S(){
         P(sem_SM);
         for(int i=0;i<N;i++){
             if(SM[i].is_free==0){
-                if(SM[i].lastSendTime+T>time(NULL)){
-                    //send data
-                    struct sockaddr_in serv_addr;
-                    serv_addr.sin_family = AF_INET;
-                    serv_addr.sin_port = htons(SM[i].port);
-                    inet_aton(SM[i].ip_address, &serv_addr.sin_addr);
-
+                struct sockaddr_in serv_addr;
+                serv_addr.sin_family = AF_INET;
+                serv_addr.sin_port = htons(SM[i].port);
+                inet_aton(SM[i].ip_address, &serv_addr.sin_addr);
+                if(SM[i].lastSendTime+T<time(NULL)){
                     // check if any message in send window is not acknowledged, find that message in send buffer and send it
-                    // should we use sendto() or m_sendto()?
-                    
+                    for(int j=0;j<16;j++){
+                        if(SM[i].swnd.wndw[j]!=-1){
+                            if(sendto(SM[i].udp_socket_id, SM[i].send_buffer[SM[i].swnd.wndw[j]], 1024, 0, (struct sockaddr *) &serv_addr, sizeof(serv_addr))==-1){
+                                perror("sendto()");
+                                exit(1);
+                            }
+                            SM[i].lastSendTime=time(NULL);
+                        }
+                    }
                 }
                 else{
-                    // i don't know what to do here
+                    // gotta ask AG
                 }
             }
         }
