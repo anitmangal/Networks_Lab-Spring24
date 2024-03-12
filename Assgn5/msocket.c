@@ -4,12 +4,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-// Define a structure to represent the state of each MTP socket
-struct MSocket {
-    int udp_socket; // The underlying UDP socket
-    // Additional fields as needed
-};
-
 // Global error variable
 int msocket_errno = 0;
 
@@ -32,20 +26,6 @@ int is_free_entry_available() {
     return -1;
 }
 
-// Function to initialize SM with corresponding entries (replace with your logic)
-void initialize_SM_entry(struct MSocket *msock) {
-    int i=0;
-    for(i=0;i<N;i++){
-        if(SM[i].is_free==1){
-            SM[i].is_free=0;
-            SM[i].process_id=getpid();
-            SM[i].udp_socket_id=msock->udp_socket;
-            
-            break;
-        }
-    }
-}
-
 int m_socket(int domain, int type, int protocol) {
     if (type != SOCK_MTP) {
         msocket_errno = EINVAL;
@@ -57,6 +37,8 @@ int m_socket(int domain, int type, int protocol) {
     if ((i=is_free_entry_available())==-1) {
         msocket_errno = ENOBUFS;
         msocket_errno = sock_info->err_no;
+
+        // resetting sock_info
         sock_info->sock_id=0;
         sock_info->err_no=0;
         sock_info->ip_address[0]='\0';
@@ -133,10 +115,25 @@ int m_bind(char src_ip[], uint16_t src_port, char dest_ip[], uint16_t dest_port)
     return 0;
 }
 
-ssize_t m_sendto(int sockfd, const void *buf, size_t len, int flags,
+ssize_t m_sendto(int m_sockfd, const void *buf, size_t len, int flags,
                  const struct sockaddr *dest_addr, socklen_t addrlen) {
-    // Implement as needed
-    return sendto(((struct MSocket *)sockfd)->udp_socket, buf, len, flags, dest_addr, addrlen);
+    char dest_ip[16];
+    uint16_t dest_port;
+    int udp_sockfd=SM[m_sockfd].udp_socket_id;
+    inet_ntop(AF_INET, &(((struct sockaddr_in *)dest_addr)->sin_addr), dest_ip, 16);
+    dest_port=ntohs(((struct sockaddr_in *)dest_addr)->sin_port);
+
+    if(strcmp(SM[m_sockfd].ip_address, dest_ip)!=0 || SM[m_sockfd].port!=dest_port){
+        msocket_errno = ENOTBOUND;      //????
+        return -1;
+    }
+
+    if(SM[m_sockfd].swnd.size==0){      //???? assuming swnd.size=0 means send buffer is full
+        errno=ENOBUFS;
+        return -1;
+    }
+
+    return sendto(udp_sockfd, buf, len, flags, dest_addr, addrlen);
 }
 
 ssize_t m_recvfrom(int sockfd, void *buf, size_t len, int flags,
@@ -146,9 +143,7 @@ ssize_t m_recvfrom(int sockfd, void *buf, size_t len, int flags,
 }
 
 int m_close(int sockfd) {
-    int result = close(((struct MSocket *)sockfd)->udp_socket);
-    free((struct MSocket *)sockfd);
-    return result;
+    
 }
 
 int dropMessage() {

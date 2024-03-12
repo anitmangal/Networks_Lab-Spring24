@@ -3,11 +3,13 @@
 
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <arpa/inet.h>
 #include <stdint.h> 
 #include <sys/time.h>
 
 // Custom socket type for MTP
 #define SOCK_MTP 3
+#define ENOTBOUND 1000  //????
 
 // defining T
 #define T 5
