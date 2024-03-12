@@ -103,7 +103,7 @@ int main() {
             while((readbytes = read(f, buf, MAX_BUFF_LENGTH)) > 0) {
                     for (int i = 0; i < readbytes; i++) {
                         if (buf[i] >= 'a' && buf[i] <= 'z') buf[i] = (char)('a'+(((buf[i]-'a')+keylen)%26));
-                        else if (buf[i] >= 'A' && buf[i] <= 'Z') buf[i] = (char)('A'+(((buf[i]-'A')+keylen)%26));\
+                        else if (buf[i] >= 'A' && buf[i] <= 'Z') buf[i] = (char)('A'+(((buf[i]-'A')+keylen)%26));
                     }
                     write(newf, buf, readbytes);
                     send(newsockid, buf, readbytes, 0);
