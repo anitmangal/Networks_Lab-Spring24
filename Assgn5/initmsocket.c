@@ -71,6 +71,32 @@ void R() {
     }
 }
 
+void S(){
+    while(1){
+        sleep(T/2);
+        P(sem_SM);
+        for(int i=0;i<N;i++){
+            if(SM[i].is_free==0){
+                if(SM[i].lastSendTime+T>time(NULL)){
+                    //send data
+                    struct sockaddr_in serv_addr;
+                    serv_addr.sin_family = AF_INET;
+                    serv_addr.sin_port = htons(SM[i].port);
+                    inet_aton(SM[i].ip_address, &serv_addr.sin_addr);
+
+                    // check if any message in send window is not acknowledged, find that message in send buffer and send it
+                    // should we use sendto() or m_sendto()?
+                    
+                }
+                else{
+                    // i don't know what to do here
+                }
+            }
+        }
+        V(sem_SM);
+    }
+}
+
 int main(){
 
 
@@ -80,14 +106,14 @@ int main(){
 
     // create shared memory
     shmid_sock_info=shmget(IPC_PRIVATE, sizeof(SOCK_INFO), 0666|IPC_CREAT);
-    shmid_SM=shmget(IPC_PRIVATE, sizeof(struct SM_entry)*N, 0666|IPC_CREAT);
+    // shmid_SM=shmget(IPC_PRIVATE, sizeof(struct SM_entry)*N, 0666|IPC_CREAT);
     sem1=semget(IPC_PRIVATE, 1, 0666|IPC_CREAT);
     sem2=semget(IPC_PRIVATE, 1, 0666|IPC_CREAT);
     sem_SM=semget(IPC_PRIVATE, 1, 0666|IPC_CREAT);
     sem_sock_info=semget(IPC_PRIVATE, 1, 0666|IPC_CREAT);
 
     sock_info=(SOCK_INFO *)shmat(shmid_sock_info, 0, 0);
-    SM=(struct SM_entry *)shmat(shmid_SM, 0, 0);
+    // SM=(struct SM_entry *)shmat(shmid_SM, 0, 0);
 
     //initialising shared memory
     sock_info->sock_id=0;

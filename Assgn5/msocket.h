@@ -43,7 +43,7 @@ struct SM_entry {
     struct window swnd;        // (vii) send window
     struct window rwnd;        // (viii) receive window
     int nospace;               // whether receive buffer has space or not
-    struct timeval lastSendTime;      // last message send time
+    time_t lastSendTime;      // last message send time
 };
 
 
