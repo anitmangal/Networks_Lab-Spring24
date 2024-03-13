@@ -1,12 +1,16 @@
 #ifndef MSOCKET_H
 #define MSOCKET_H
 
+#include <sys/time.h>
+#include <errno.h>
+#include <stdlib.h>
+#include <unistd.h>
 #include <sys/types.h>
+#include <sys/ipc.h>
+#include <sys/sem.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <stdint.h> 
-#include <sys/time.h>
-
 // Custom socket type for MTP
 #define SOCK_MTP 3
 #define ENOTBOUND 1000  //????
@@ -20,8 +24,6 @@
 				   the P(s) operation */
 #define V(s) semop(s, &vop, 1)  /* vop is the structure we pass for doing
 				   the V(s) operation */
-
-struct sembuf pop, vop;
 
 struct window {
     int wndw[16];
@@ -46,7 +48,7 @@ struct SM_entry {
     uint16_t port;             // (iv) Port address of the other end of the MTP socket
     char send_buffer[10][1024];    // (v) send buffer
     char recv_buffer[5][1024];    // (vi) receive buffer
-    // int send_buffer_valid[10]; // If the message at index i in send_buffer is valid or not
+    int recv_buffer_pointer;   // pointer to the next location in recv_buffer for application to read
     int recv_buffer_valid[5];  // If the message at index i in recv_buffer is valid or not
     struct window swnd;        // (vii) send window
     struct window rwnd;        // (viii) receive window
@@ -64,12 +66,12 @@ typedef struct SOCK_INFO{
 } SOCK_INFO;
 
 // Global variables
-extern int msocket_errno;
 extern struct SM_entry* SM;
 extern SOCK_INFO* sock_info;
 extern int sem1, sem2;
 extern int sem_sock_info, sem_SM;
 extern int shmid_sock_info, shmid_SM;
+extern struct sembuf pop, vop;
 
 // Function prototypes
 int m_socket(int domain, int type, int protocol);

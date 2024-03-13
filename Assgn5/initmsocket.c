@@ -1,19 +1,11 @@
 #include <stdio.h>
 #include <pthread.h>
 #include <string.h>
-#include <stdlib.h>
-#include <errno.h>
-#include <sys/ipc.h>
-#include <sys/shm.h>
-#include <netinet/in.h>
-#include <unistd.h>
-#include <sys/sem.h>
-#include <sys/types.h>
 #include <sys/select.h>
+#include <signal.h>
 #include "msocket.h"
 
 
-struct sembuf pop, vop;
 /*
 
     Each message will have a 5 bit header. 1 bit for type (0 = ACK, 1 = DATA), 4 bit for sequence number.
@@ -186,37 +178,85 @@ void S(){
     }
 }
 
-int main(){
+void G() {
 
+}
+
+int main(){
+    signal(SIGINT, sigHandler); // Ctrl+C will release resources and exit
 
     pop.sem_num = vop.sem_num = 0;
 	pop.sem_flg = vop.sem_flg = 0;
 	pop.sem_op = -1 ; vop.sem_op = 1;
 
-    // create shared memory
-    shmid_sock_info=shmget(IPC_PRIVATE, sizeof(SOCK_INFO), 0666|IPC_CREAT);
-    shmid_SM=shmget(IPC_PRIVATE, sizeof(struct SM_entry)*N, 0666|IPC_CREAT);
-    sem1=semget(IPC_PRIVATE, 1, 0666|IPC_CREAT);
-    sem2=semget(IPC_PRIVATE, 1, 0666|IPC_CREAT);
-    sem_SM=semget(IPC_PRIVATE, 1, 0666|IPC_CREAT);
-    sem_sock_info=semget(IPC_PRIVATE, 1, 0666|IPC_CREAT);
+    // Get keys
+    int key_shmid_sock_info, key_shmid_SM, key_sem1, key_sem2, key_sem_SM, key_sem_sock_info;
+    key_shmid_sock_info = ftok("makefile", 'A');
+    key_shmid_SM = ftok("makefile", 'B');
+    key_sem1 = ftok("makefile", 'C');
+    key_sem2 = ftok("makefile", 'D');
+    key_sem_SM = ftok("makefile", 'E');
+    key_sem_sock_info = ftok("makefile", 'F');
 
+
+    // create shared memory and semaphores
+    shmid_sock_info=shmget(key_shmid_sock_info, sizeof(SOCK_INFO), 0666|IPC_CREAT);
+    shmid_SM=shmget(key_shmid_SM, sizeof(struct SM_entry)*N, 0666|IPC_CREAT);
+    sem1=semget(key_sem1, 1, 0666|IPC_CREAT);
+    sem2=semget(key_sem2, 1, 0666|IPC_CREAT);
+    sem_SM=semget(key_sem_SM, 1, 0666|IPC_CREAT);
+    sem_sock_info=semget(key_sem_sock_info, 1, 0666|IPC_CREAT);
+
+    // attach shared memory
     sock_info=(SOCK_INFO *)shmat(shmid_sock_info, 0, 0);
     SM=(struct SM_entry *)shmat(shmid_SM, 0, 0);
 
-    //initialising shared memory
+    // initialising sock_info
     sock_info->sock_id=0;
     sock_info->err_no=0;
     sock_info->ip_address[0]='\0';
     sock_info->port=0;
 
+    // initialising SM
+    for(int i=0;i<N;i++){
+        SM[i].is_free=1;
+        SM[i].udp_socket_id=0;
+        SM[i].ip_address[0]='\0';
+        SM[i].port=0;
+
+        // swnd. Need to initialise swnd.wndw
+        SM[i].swnd.size=5;
+        SM[i].swnd.start_seq=1;
+
+        // rwnd
+        for (int i = 0; i < 16; i++) {
+            if (i > 0 && i < 6) SM[i].rwnd.wndw[i] = i-1;
+            else SM[i].rwnd.wndw[i] = -1;
+        }
+        SM[i].rwnd.size=5;
+        SM[i].rwnd.start_seq=1;
+
+        for (int i = 0; i < 5; i++) SM[i].recv_buffer_valid[i] = 0;
+        SM[i].recv_buffer_pointer=0;
+
+        SM[i].nospace=0;
+        SM[i].lastSendTime=0;           // Change this
+    }
+
+    // initialising semaphores
     semctl(sem1, 0, SETVAL, 0);
     semctl(sem2, 0, SETVAL, 0);
     semctl(sem_SM, 0, SETVAL, 1);
     semctl(sem_sock_info, SETVAL, 1);
 
     // create threads S, R, etc.
-
+    pthread_t S_thread, R_thread, G_thread;
+    pthread_attr_t attr;
+    pthread_attr_init(&attr);
+    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+    pthread_create(&S_thread, &attr, S, NULL);
+    pthread_create(&R_thread, &attr, R, NULL);
+    pthread_create(&G_thread, &attr, G, NULL);
 
 
     // while loop
@@ -245,8 +285,6 @@ int main(){
         }
         V(sem2);
     }
-
-    // Signal handler for SIGINT to release resources
 
     return 0;
 }
