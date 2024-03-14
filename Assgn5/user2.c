@@ -30,6 +30,10 @@ int main(){
         return 1;
     }
 
+    serverAddr.sin_family = AF_INET;
+    serverAddr.sin_port = htons(dest_port);
+    serverAddr.sin_addr.s_addr = inet_addr(dest_ip);
+
     while(m_recvfrom(sockfd, buffer, 1024, 0, (struct sockaddr*)&serverAddr, &addr_size)>0){
         if(write(fd, buffer, 1024)<0){
             perror("Error in writing to file\n");

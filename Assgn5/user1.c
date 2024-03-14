@@ -29,6 +29,9 @@ int main(){
         return 1;
     }
 
+    serverAddr.sin_family = AF_INET;
+    serverAddr.sin_port = htons(dest_port);
+    serverAddr.sin_addr.s_addr = inet_addr(dest_ip);
     while(read(fd, buffer, 1024)>0){
         if(m_sendto(sockfd, buffer, 1024, 0, (struct sockaddr*)&serverAddr, sizeof(serverAddr))<0){
             perror("Error in sending\n");

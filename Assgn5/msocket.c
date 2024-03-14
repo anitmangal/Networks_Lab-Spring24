@@ -116,14 +116,17 @@ int m_socket(int domain, int type, int protocol) {
 int m_bind(char src_ip[], uint16_t src_port, char dest_ip[], uint16_t dest_port) {
     get_shared_resources();
     int sockfd=-1;
+    P(sem_SM);
     for(int i=0;i<25;i++){
         if(SM[i].is_free==0 && SM[i].process_id==getpid()){
             sockfd=i;
             break;
         }
     }
+    V(sem_SM);
 
     // should never execute... just for safety
+    P(sem_sock_info);
     if(sockfd==-1){
         errno = ENOBUFS;
         sock_info->sock_id=0;
@@ -137,10 +140,11 @@ int m_bind(char src_ip[], uint16_t src_port, char dest_ip[], uint16_t dest_port)
     strcpy(sock_info->ip_address, src_ip);
     sock_info->port=src_port;
 
+    V(sem_sock_info);
     V(sem1);
 
     P(sem2);
-
+    P(sem_sock_info);
     if(sock_info->sock_id==-1){
         errno = sock_info->err_no;
         sock_info->sock_id=0;
@@ -149,14 +153,22 @@ int m_bind(char src_ip[], uint16_t src_port, char dest_ip[], uint16_t dest_port)
         sock_info->port=0;
         return -1;
     }
+    V(sem_sock_info);
 
+    P(sem_SM);
     strcpy(SM[sockfd].ip_address, dest_ip);
     SM[sockfd].port=dest_port;
 
+    printf("Binding successful: %d %d %d %d %16s %d %d\n", SM[sockfd].is_free, SM[sockfd].process_id, getpid(), SM[sockfd].udp_socket_id, SM[sockfd].ip_address, SM[sockfd].port, SM[sockfd].nospace);
+    V(sem_SM);
+
+    // resetting sock_info
+    P(sem_sock_info);
     sock_info->sock_id=0;
     sock_info->err_no=0;
     sock_info->ip_address[0]='\0';
     sock_info->port=0;
+    V(sem_sock_info);
 
     return 0;
 }
