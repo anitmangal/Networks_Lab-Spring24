@@ -7,7 +7,6 @@ int main(){
     int sockfd;
     struct sockaddr_in serverAddr;
     char buffer[1024];
-    socklen_t addr_size;
     
     if((sockfd = m_socket(AF_INET, SOCK_MTP, 0))<0){
         perror("Error in socket creation\n");
@@ -31,7 +30,7 @@ int main(){
     }
 
     while(read(fd, buffer, 1024)>0){
-        if(m_sendto(sockfd, buffer, 1024, 0, (struct sockaddr*)&serverAddr, addr_size)<0){
+        if(m_sendto(sockfd, buffer, 1024, 0, (struct sockaddr*)&serverAddr, sizeof(serverAddr))<0){
             perror("Error in sending\n");
             return 1;
         }

@@ -47,11 +47,14 @@ void get_shared_resources() {
 
 // Function to check if a free entry is available in SM
 int is_free_entry_available() {
+    P(sem_SM);
     for(int i=0;i<25;i++){
         if(SM[i].is_free==1){
+            V(sem_SM);
             return i;
         }
     }
+    V(sem_SM);
     return -1;
 }
 
@@ -67,9 +70,10 @@ int m_socket(int domain, int type, int protocol) {
 
     if ((i=is_free_entry_available())==-1) {
         errno = ENOBUFS;
-        errno = sock_info->err_no;
+        sock_info->err_no=errno;
 
         // resetting sock_info
+        P(sem_sock_info);
         sock_info->sock_id=0;
         sock_info->err_no=0;
         sock_info->ip_address[0]='\0';
@@ -94,11 +98,14 @@ int m_socket(int domain, int type, int protocol) {
         return -1;
     }
 
+    P(sem_SM);
     SM[i].is_free=0;
     SM[i].process_id=getpid();
     SM[i].udp_socket_id=sock_info->sock_id;
+    V(sem_SM);
     
     // resetting sock_info
+    P(sem_sock_info);
     sock_info->sock_id=0;
     sock_info->err_no=0;
     sock_info->ip_address[0]='\0';

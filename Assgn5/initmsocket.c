@@ -26,7 +26,7 @@ void sigHandler(int sig){
     exit(0);
 }
 
-void R() {
+void * R() {
     fd_set readfds;
     FD_ZERO(&readfds);
     int nfds = 0;
@@ -79,7 +79,7 @@ void R() {
                 if (FD_ISSET(SM[i].udp_socket_id, &readyfds)) {
                     char buffer[1029];
                     struct sockaddr_in cliaddr;
-                    int len = sizeof(cliaddr);
+                    unsigned int len = sizeof(cliaddr);
                     int n = recvfrom(SM[i].udp_socket_id, buffer, 1029, 0, (struct sockaddr *)&cliaddr, &len);
                     if (n < 0) {
                         perror("recvfrom()");
@@ -148,7 +148,7 @@ void R() {
     }
 }
 
-void S(){
+void * S(){
     while(1){
         sleep(T/2);
         P(sem_SM);
@@ -203,7 +203,7 @@ void S(){
     }
 }
 
-void G() {
+void * G() {
     // Garbage collector thread to identify killed messages and close their sockets if not closed already in the SM table
     while (1) {
         sleep(T);
@@ -211,6 +211,7 @@ void G() {
         for (int i = 0; i < N; i++) {
             if (SM[i].is_free) continue;                    // Free entry
             if (kill(SM[i].process_id, 0) == 0) continue;   // Process still running
+            printf("G: Process %d killed\n", SM[i].process_id);
             int socket_id = SM[i].udp_socket_id;
             int j;
             for (j = 0; j < N; j++) if (i != j && SM[j].udp_socket_id == socket_id) break;
@@ -247,6 +248,8 @@ int main(){
     sem_SM=semget(key_sem_SM, 1, 0666|IPC_CREAT);
     sem_sock_info=semget(key_sem_sock_info, 1, 0666|IPC_CREAT);
 
+    printf("%d %d %d %d %d %d\n", shmid_sock_info, shmid_SM, sem1, sem2, sem_SM, sem_sock_info);
+
     // attach shared memory
     sock_info=(SOCK_INFO *)shmat(shmid_sock_info, 0, 0);
     SM=(struct SM_entry *)shmat(shmid_SM, 0, 0);
@@ -265,6 +268,7 @@ int main(){
         SM[i].port=0;
 
         // swnd. Need to initialise swnd.wndw
+        for(int i=0;i<16;i++) SM[i].swnd.wndw[i]=-1;          // Change this, change works???
         SM[i].swnd.size=5;
         SM[i].swnd.start_seq=1;
         SM[i].send_buffer_sz=10;
@@ -281,15 +285,14 @@ int main(){
         SM[i].recv_buffer_pointer=0;
 
         SM[i].nospace=0;
-        for(int j=0;j<16;j++)
-            SM[i].lastSendTime[j]=-1;           // Change this, change works????
+        for(int j=0;j<16;j++) SM[i].lastSendTime[j]=-1;           // Change this, change works????
     }
 
     // initialising semaphores
     semctl(sem1, 0, SETVAL, 0);
     semctl(sem2, 0, SETVAL, 0);
     semctl(sem_SM, 0, SETVAL, 1);
-    semctl(sem_sock_info, SETVAL, 1);
+    semctl(sem_sock_info, 0, SETVAL, 1);
 
     // create threads S, R, etc.
     pthread_t S_thread, R_thread, G_thread;

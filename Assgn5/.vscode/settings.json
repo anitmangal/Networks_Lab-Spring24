@@ -9,6 +9,7 @@
         "ipc.h": "c",
         "stdint.h": "c",
         "socket.h": "c",
-        "pthread.h": "c"
+        "pthread.h": "c",
+        "stdio.h": "c"
     }
 }
