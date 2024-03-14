@@ -204,6 +204,21 @@ void S(){
 }
 
 void G() {
+    // Garbage collector thread to identify killed messages and close their sockets if not closed already in the SM table
+    while (1) {
+        sleep(T);
+        P(sem_SM);
+        for (int i = 0; i < N; i++) {
+            if (SM[i].is_free) continue;                    // Free entry
+            if (kill(SM[i].process_id, 0) == 0) continue;   // Process still running
+            int socket_id = SM[i].udp_socket_id;
+            int j;
+            for (j = 0; j < N; j++) if (i != j && SM[j].udp_socket_id == socket_id) break;
+            if (j == N) m_close(i);                   // No other entry with same socket_id, close the socket and mark the entry as free
+            else SM[i].is_free = 1;                    // The socket file descriptor was replaced by another socket, just mark the entry as free
+        }
+        V(sem_SM);
+    }
 
 }
 
