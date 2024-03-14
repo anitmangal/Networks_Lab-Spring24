@@ -305,6 +305,7 @@ int main(){
 
     while(1){
         P(sem1);
+        P(sem_sock_info);
         if(sock_info->sock_id==0 && sock_info->ip_address[0]=='\0' && sock_info->port==0){
             int sock_id=socket(AF_INET, SOCK_DGRAM, 0);
             if(sock_id==-1){
@@ -325,6 +326,7 @@ int main(){
                 sock_info->err_no=errno;
             }
         }
+        V(sem_sock_info);
         V(sem2);
     }
 

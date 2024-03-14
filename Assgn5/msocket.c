@@ -63,6 +63,7 @@ int m_socket(int domain, int type, int protocol) {
     }
     
     int i;
+    P(sem_sock_info);
 
     if ((i=is_free_entry_available())==-1) {
         errno = ENOBUFS;
@@ -73,15 +74,23 @@ int m_socket(int domain, int type, int protocol) {
         sock_info->err_no=0;
         sock_info->ip_address[0]='\0';
         sock_info->port=0;
+        V(sem_sock_info);
         return -1;
     }
 
     V(sem1);
+    V(sem_sock_info);
 
+    P(sem_sock_info);
     P(sem2);
 
     if(sock_info->sock_id==-1){
         errno = sock_info->err_no;
+        sock_info->sock_id=0;
+        sock_info->err_no=0;
+        sock_info->ip_address[0]='\0';
+        sock_info->port=0;
+        V(sem_sock_info);
         return -1;
     }
 
@@ -94,6 +103,7 @@ int m_socket(int domain, int type, int protocol) {
     sock_info->err_no=0;
     sock_info->ip_address[0]='\0';
     sock_info->port=0;
+    V(sem_sock_info);
 
     return i;
 }
