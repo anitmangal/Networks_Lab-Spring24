@@ -75,7 +75,7 @@ extern struct sembuf pop, vop;
 
 // Function prototypes
 int m_socket(int domain, int type, int protocol);
-int m_bind(int sockfd, const struct sockaddr *addr, socklen_t addrlen);
+int m_bind(char src_ip[], uint16_t src_port, char dest_ip[], uint16_t dest_port);
 ssize_t m_sendto(int sockfd, const void *buf, size_t len, int flags,
                  const struct sockaddr *dest_addr, socklen_t addrlen);
 ssize_t m_recvfrom(int sockfd, void *buf, size_t len, int flags,

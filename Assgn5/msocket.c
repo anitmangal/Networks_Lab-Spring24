@@ -148,6 +148,7 @@ int m_bind(char src_ip[], uint16_t src_port, char dest_ip[], uint16_t dest_port)
 ssize_t m_sendto(int m_sockfd, const void *buf, size_t len, int flags,
                  const struct sockaddr *dest_addr, socklen_t addrlen) {
     get_shared_resources();
+    P(sem_SM);
     char dest_ip[16];
     uint16_t dest_port;
     int udp_sockfd=SM[m_sockfd].udp_socket_id;
@@ -164,7 +165,37 @@ ssize_t m_sendto(int m_sockfd, const void *buf, size_t len, int flags,
         return -1;
     }
 
-    return sendto(udp_sockfd, buf, len, flags, dest_addr, addrlen);
+    int seq_no=SM[m_sockfd].swnd.start_seq;
+    while(SM[m_sockfd].swnd.wndw[seq_no]!=-1){
+        seq_no=(seq_no+1)%16;
+    }
+
+    int buff_index=0;
+    int f=1;
+    for(buff_index=0;buff_index<10;buff_index++){
+        f=1;
+        for(int i=0;i<15;i++){
+            if(SM[m_sockfd].swnd.wndw[i]==buff_index){
+                f=0;
+                break;
+            }
+        }
+        if(f==1){
+            break;
+        }
+    }
+
+    // should never execute... just for safety
+    if(f==0){
+        errno=ENOBUFS;
+        return -1;
+    }
+
+    SM[m_sockfd].swnd.wndw[seq_no]=buff_index;
+    SM[m_sockfd].swnd.size--;
+    stcrpy(SM[m_sockfd].send_buffer[buff_index], buf);
+
+    return len;
 }
 
 ssize_t m_recvfrom(int sockfd, void *buf, size_t len, int flags,
