@@ -160,7 +160,7 @@ ssize_t m_sendto(int m_sockfd, const void *buf, size_t len, int flags,
         return -1;
     }
 
-    if(SM[m_sockfd].swnd.size==0){      //???? assuming swnd.size=0 means send buffer is full
+    if(SM[m_sockfd].send_buffer_sz==0){      // send buffer is full
         errno=ENOBUFS;
         return -1;
     }
@@ -195,6 +195,7 @@ ssize_t m_sendto(int m_sockfd, const void *buf, size_t len, int flags,
     SM[m_sockfd].swnd.size--;
     stcrpy(SM[m_sockfd].send_buffer[buff_index], buf);
     SM[m_sockfd].lastSendTime[seq_no]=-1;
+    SM[m_sockfd].send_buffer_sz--;
 
     return len;
 }

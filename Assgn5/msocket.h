@@ -47,6 +47,7 @@ struct SM_entry {
     char ip_address[16];       // (iv) IP address of the other end of the MTP socket (assuming IPv4)
     uint16_t port;             // (iv) Port address of the other end of the MTP socket
     char send_buffer[10][1024];    // (v) send buffer
+    int send_buffer_sz;
     char recv_buffer[5][1024];    // (vi) receive buffer
     int recv_buffer_pointer;   // pointer to the next location in recv_buffer for application to read
     int recv_buffer_valid[5];  // If the message at index i in recv_buffer is valid or not

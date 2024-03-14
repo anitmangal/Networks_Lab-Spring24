@@ -93,6 +93,7 @@ void R() {
                                 int j = SM[i].swnd.start_seq;
                                 while (j != seq) {
                                     SM[i].swnd.wndw[j] = -1;
+                                    SM[i].send_buffer_sz++;
                                     j = (j+1)%16;
                                 }
                                 SM[i].swnd.start_seq = (seq+1)%16;
@@ -165,7 +166,8 @@ void S(){
                     }
                 }
                 if(timeout){
-                    for(int j=0;j<16;j++){
+                    int j=SM[i].swnd.start_seq;
+                    while(j<SM[i].swnd.start_seq+5){
                         if(SM[i].swnd.wndw[j]!=-1){
                             char buffer[1029];
                             buffer[0]='1';
@@ -180,7 +182,8 @@ void S(){
                     }
                 }
                 else{
-                    for(int j=0;j<16;j++){
+                    int j=SM[i].swnd.start_seq;
+                    while(j<SM[i].swnd.start_seq+5){
                         if(SM[i].swnd.wndw[j]!=-1 && SM[i].lastSendTime[j]==-1){
                             char buffer[1029];
                             buffer[0]='1';
@@ -249,6 +252,7 @@ int main(){
         // swnd. Need to initialise swnd.wndw
         SM[i].swnd.size=5;
         SM[i].swnd.start_seq=1;
+        SM[i].send_buffer_sz=10;
 
         // rwnd
         for (int i = 0; i < 16; i++) {
