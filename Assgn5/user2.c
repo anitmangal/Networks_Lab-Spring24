@@ -33,12 +33,18 @@ int main(){
     serverAddr.sin_family = AF_INET;
     serverAddr.sin_port = htons(dest_port);
     serverAddr.sin_addr.s_addr = inet_addr(dest_ip);
-
-    while(m_recvfrom(sockfd, buffer, 1024, 0, (struct sockaddr*)&serverAddr, &addr_size)>0){
+    printf("Reading file\n");
+    int recvlen;
+    while((recvlen=m_recvfrom(sockfd, buffer, 1024, 0, (struct sockaddr*)&serverAddr, &addr_size))>0){
+        printf("Writing\n");
         if(write(fd, buffer, 1024)<0){
             perror("Error in writing to file\n");
             return 1;
         }
+    }
+    if (recvlen < 0) {
+        perror("Error in receiving\n");
+        return 1;
     }
 
     close(fd);

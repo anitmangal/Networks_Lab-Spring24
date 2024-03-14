@@ -184,11 +184,13 @@ ssize_t m_sendto(int m_sockfd, const void *buf, size_t len, int flags,
 
     if(strcmp(SM[m_sockfd].ip_address, dest_ip)!=0 || SM[m_sockfd].port!=dest_port){
         errno = ENOTCONN;
+        V(sem_SM);
         return -1;
     }
 
     if(SM[m_sockfd].send_buffer_sz==0){      // send buffer is full
         errno=ENOBUFS;
+        V(sem_SM);
         return -1;
     }
 
@@ -201,8 +203,9 @@ ssize_t m_sendto(int m_sockfd, const void *buf, size_t len, int flags,
     int f=1;
     for(buff_index=0;buff_index<10;buff_index++){
         f=1;
-        for(int i=0;i<15;i++){
+        for(int i=0;i<16;i++){
             if(SM[m_sockfd].swnd.wndw[i]==buff_index){
+                printf("%d %d %d\n", i, SM[m_sockfd].swnd.wndw[i], buff_index);
                 f=0;
                 break;
             }
@@ -215,15 +218,18 @@ ssize_t m_sendto(int m_sockfd, const void *buf, size_t len, int flags,
     // should never execute... just for safety
     if(f==0){
         errno=ENOBUFS;
+        V(sem_SM);
         return -1;
     }
 
     SM[m_sockfd].swnd.wndw[seq_no]=buff_index;
-    SM[m_sockfd].swnd.size--;
+    // SM[m_sockfd].swnd.size--;
     strcpy(SM[m_sockfd].send_buffer[buff_index], buf);
     SM[m_sockfd].lastSendTime[seq_no]=-1;
     SM[m_sockfd].send_buffer_sz--;
+    printf("m_sendto: %d %d %1024s %ld %d %d %d", SM[m_sockfd].swnd.wndw[seq_no], SM[m_sockfd].swnd.size, SM[m_sockfd].send_buffer[buff_index], SM[m_sockfd].lastSendTime[seq_no], SM[m_sockfd].send_buffer_sz, seq_no, buff_index);
 
+    V(sem_SM);
     return len;
 }
 

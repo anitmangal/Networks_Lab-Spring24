@@ -42,8 +42,10 @@ void * R() {
         }
         else if (retval == 0) {
             //timeout
+            printf("R: Timeout\n");
             FD_ZERO(&readfds);
             P(sem_SM);
+            printf("R: Timeout1\n");
             for (int i = 0; i < N; i++) {
                 if (SM[i].is_free == 0) {
                     FD_SET(SM[i].udp_socket_id, &readfds);
@@ -67,6 +69,7 @@ void * R() {
                         ack[5] = (SM[i].rwnd.size>>2)%2 + '0';
                         ack[6] = (SM[i].rwnd.size>>1)%2 + '0';
                         ack[7] = (SM[i].rwnd.size)%2 + '0';
+                        printf("R: Sending ACK %d\n", lastseq);
                         sendto(SM[i].udp_socket_id, ack, 8, 0, (struct sockaddr *)&cliaddr, sizeof(cliaddr));
                     }
                 }
@@ -80,6 +83,7 @@ void * R() {
                     char buffer[1029];
                     struct sockaddr_in cliaddr;
                     unsigned int len = sizeof(cliaddr);
+                    printf("R: Receiving from %d\n", SM[i].udp_socket_id); // Change this, change works???
                     int n = recvfrom(SM[i].udp_socket_id, buffer, 1029, 0, (struct sockaddr *)&cliaddr, &len);
                     if (n < 0) {
                         perror("recvfrom()");
@@ -152,8 +156,10 @@ void * S(){
     while(1){
         sleep(T/2);
         P(sem_SM);
+        printf("S: Running\n");
         for(int i=0;i<N;i++){
             if(SM[i].is_free==0){
+                printf("S: Checking %d\n", i);
                 struct sockaddr_in serv_addr;
                 serv_addr.sin_family = AF_INET;
                 serv_addr.sin_port = htons(SM[i].port);
@@ -176,6 +182,7 @@ void * S(){
                             buffer[3]=(j>>1)%2+'0';
                             buffer[4]=(j)%2+'0';
                             strncpy(buffer+5, SM[i].send_buffer[SM[i].swnd.wndw[j]], 1024);
+                            printf("S: Resending %d\n", j);
                             sendto(SM[i].udp_socket_id, buffer, 1029, 0, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
                             SM[i].lastSendTime[j]=time(NULL);
                         }
@@ -192,6 +199,7 @@ void * S(){
                             buffer[3]=(j>>1)%2+'0';
                             buffer[4]=(j)%2+'0';
                             strncpy(buffer+5, SM[i].send_buffer[SM[i].swnd.wndw[j]], 1024);
+                            printf("S: Sending %d\n", j);
                             sendto(SM[i].udp_socket_id, buffer, 1029, 0, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
                             SM[i].lastSendTime[j]=time(NULL);
                         }
@@ -268,20 +276,20 @@ int main(){
         SM[i].port=0;
 
         // swnd. Need to initialise swnd.wndw
-        for(int i=0;i<16;i++) SM[i].swnd.wndw[i]=-1;          // Change this, change works???
+        for(int j=0;j<16;j++) SM[i].swnd.wndw[j]=-1;          // Change this, change works???
         SM[i].swnd.size=5;
         SM[i].swnd.start_seq=1;
         SM[i].send_buffer_sz=10;
 
         // rwnd
-        for (int i = 0; i < 16; i++) {
-            if (i > 0 && i < 6) SM[i].rwnd.wndw[i] = i-1;
-            else SM[i].rwnd.wndw[i] = -1;
+        for (int j = 0; j < 16; j++) {
+            if (j > 0 && j < 6) SM[i].rwnd.wndw[j] = j-1;
+            else SM[i].rwnd.wndw[j] = -1;
         }
         SM[i].rwnd.size=5;
         SM[i].rwnd.start_seq=1;
 
-        for (int i = 0; i < 5; i++) SM[i].recv_buffer_valid[i] = 0;
+        for (int j = 0; j < 5; j++) SM[i].recv_buffer_valid[j] = 0;
         SM[i].recv_buffer_pointer=0;
 
         SM[i].nospace=0;
