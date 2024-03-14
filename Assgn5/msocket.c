@@ -1,4 +1,5 @@
 #include "msocket.h"
+#include <assert.h>
 
 // Shared memory structure
 struct SM_entry * SM;
@@ -151,7 +152,6 @@ ssize_t m_sendto(int m_sockfd, const void *buf, size_t len, int flags,
     P(sem_SM);
     char dest_ip[16];
     uint16_t dest_port;
-    int udp_sockfd=SM[m_sockfd].udp_socket_id;
     inet_ntop(AF_INET, &(((struct sockaddr_in *)dest_addr)->sin_addr), dest_ip, 16);
     dest_port=ntohs(((struct sockaddr_in *)dest_addr)->sin_port);
 
@@ -193,7 +193,7 @@ ssize_t m_sendto(int m_sockfd, const void *buf, size_t len, int flags,
 
     SM[m_sockfd].swnd.wndw[seq_no]=buff_index;
     SM[m_sockfd].swnd.size--;
-    stcrpy(SM[m_sockfd].send_buffer[buff_index], buf);
+    strcpy(SM[m_sockfd].send_buffer[buff_index], buf);
     SM[m_sockfd].lastSendTime[seq_no]=-1;
     SM[m_sockfd].send_buffer_sz--;
 

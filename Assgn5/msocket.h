@@ -9,9 +9,12 @@
 #include <signal.h>
 #include <sys/ipc.h>
 #include <sys/sem.h>
+#include <sys/shm.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <stdint.h> 
+#include <stdio.h>
+#include <string.h>
 // Custom socket type for MTP
 #define SOCK_MTP 3
 #define ENOTBOUND 1000  //????
