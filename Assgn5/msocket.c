@@ -194,6 +194,7 @@ ssize_t m_sendto(int m_sockfd, const void *buf, size_t len, int flags,
     SM[m_sockfd].swnd.wndw[seq_no]=buff_index;
     SM[m_sockfd].swnd.size--;
     stcrpy(SM[m_sockfd].send_buffer[buff_index], buf);
+    SM[m_sockfd].lastSendTime[seq_no]=-1;
 
     return len;
 }

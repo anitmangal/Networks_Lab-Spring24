@@ -157,20 +157,42 @@ void S(){
                 serv_addr.sin_family = AF_INET;
                 serv_addr.sin_port = htons(SM[i].port);
                 inet_aton(SM[i].ip_address, &serv_addr.sin_addr);
-                if(SM[i].lastSendTime+T<time(NULL)){
-                    // check if any message in send window is not acknowledged, find that message in send buffer and send it
+                int timeout=0;
+                for(int j=0;j<16;j++){
+                    if(SM[i].lastSendTime[j]!=-1 && time(NULL)-SM[i].lastSendTime[j]>T){
+                        timeout=1;
+                        break;
+                    }
+                }
+                if(timeout){
                     for(int j=0;j<16;j++){
                         if(SM[i].swnd.wndw[j]!=-1){
-                            if(sendto(SM[i].udp_socket_id, SM[i].send_buffer[SM[i].swnd.wndw[j]], 1024, 0, (struct sockaddr *) &serv_addr, sizeof(serv_addr))==-1){
-                                perror("sendto()");
-                                exit(1);
-                            }
-                            SM[i].lastSendTime=time(NULL);
+                            char buffer[1029];
+                            buffer[0]='1';
+                            buffer[1]=(j>>3)%2+'0';
+                            buffer[2]=(j>>2)%2+'0';
+                            buffer[3]=(j>>1)%2+'0';
+                            buffer[4]=(j)%2+'0';
+                            strncpy(buffer+5, SM[i].send_buffer[SM[i].swnd.wndw[j]], 1024);
+                            sendto(SM[i].udp_socket_id, buffer, 1029, 0, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
+                            SM[i].lastSendTime[j]=time(NULL);
                         }
                     }
                 }
                 else{
-                    // gotta ask AG
+                    for(int j=0;j<16;j++){
+                        if(SM[i].swnd.wndw[j]!=-1 && SM[i].lastSendTime[j]==-1){
+                            char buffer[1029];
+                            buffer[0]='1';
+                            buffer[1]=(j>>3)%2+'0';
+                            buffer[2]=(j>>2)%2+'0';
+                            buffer[3]=(j>>1)%2+'0';
+                            buffer[4]=(j)%2+'0';
+                            strncpy(buffer+5, SM[i].send_buffer[SM[i].swnd.wndw[j]], 1024);
+                            sendto(SM[i].udp_socket_id, buffer, 1029, 0, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
+                            SM[i].lastSendTime[j]=time(NULL);
+                        }
+                    }
                 }
             }
         }
@@ -240,7 +262,8 @@ int main(){
         SM[i].recv_buffer_pointer=0;
 
         SM[i].nospace=0;
-        SM[i].lastSendTime=0;           // Change this
+        for(int j=0;j<16;j++)
+            SM[i].lastSendTime[j]=-1;           // Change this, change works????
     }
 
     // initialising semaphores
