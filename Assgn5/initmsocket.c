@@ -157,10 +157,8 @@ void * S(){
     while(1){
         sleep(T/2);
         P(sem_SM);
-        printf("S: Running\n");
         for(int i=0;i<N;i++){
             if(SM[i].is_free==0){
-                printf("S: Checking %d\n", i);
                 struct sockaddr_in serv_addr;
                 serv_addr.sin_family = AF_INET;
                 serv_addr.sin_port = htons(SM[i].port);
@@ -184,8 +182,9 @@ void * S(){
                             buffer[4]=(j)%2+'0';
                             strncpy(buffer+5, SM[i].send_buffer[SM[i].swnd.wndw[j]], 1024);
                             printf("S: Resending %d\n", j);
-                            sendto(SM[i].udp_socket_id, buffer, 1029, 0, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
+                            int sendb = sendto(SM[i].udp_socket_id, buffer, 1029, 0, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
                             SM[i].lastSendTime[j]=time(NULL);
+                            printf("S: Resent %d at %d\n", sendb, j);
                         }
                         j++;
                     }
@@ -212,7 +211,6 @@ void * S(){
             }
         }
         V(sem_SM);
-        printf("S: Done\n");
     }
 }
 
@@ -314,7 +312,7 @@ int main(){
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
     pthread_create(&S_thread, &attr, S, NULL);
     pthread_create(&R_thread, &attr, R, NULL);
-    // pthread_create(&G_thread, &attr, G, NULL);
+    pthread_create(&G_thread, &attr, G, NULL);
 
 
     // while loop

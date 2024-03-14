@@ -10,6 +10,7 @@
         "stdint.h": "c",
         "socket.h": "c",
         "pthread.h": "c",
-        "stdio.h": "c"
+        "stdio.h": "c",
+        "in.h": "c"
     }
 }

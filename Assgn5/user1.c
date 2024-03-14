@@ -2,6 +2,9 @@
 #include"msocket.h"
 #include<unistd.h>
 #include <fcntl.h>
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
 
 int main(){
     int sockfd;
@@ -31,17 +34,23 @@ int main(){
 
     serverAddr.sin_family = AF_INET;
     serverAddr.sin_port = htons(dest_port);
-    serverAddr.sin_addr.s_addr = inet_addr(dest_ip);
+    inet_aton(dest_ip, &serverAddr.sin_addr);
     printf("Reading file\n");
-    while(read(fd, buffer, 1024)>0){
+    int readlen;
+    while((readlen=read(fd, buffer, 1024))>0){
         printf("Sending\n");
+        for (int i = 0; i < readlen; i++) {
+            printf("%c", buffer[i]);
+        }
+        printf("\n\n\n\n");
         int sendlen;
-        if((sendlen=m_sendto(sockfd, buffer, 1024, 0, (struct sockaddr*)&serverAddr, sizeof(serverAddr)))<0){
+        if((sendlen=m_sendto(sockfd, buffer, readlen, 0, (struct sockaddr*)&serverAddr, sizeof(serverAddr)))<0){
             perror("Error in sending\n");
             return 1;
         }
         printf("Sent %d bytes\n", sendlen);
     }
+    sleep(10);   // To ensure all messages are sent
 
     close(fd);
 

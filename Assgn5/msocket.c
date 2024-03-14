@@ -48,7 +48,7 @@ void get_shared_resources() {
 // Function to check if a free entry is available in SM
 int is_free_entry_available() {
     P(sem_SM);
-    for(int i=0;i<25;i++){
+    for(int i=0;i<N;i++){
         if(SM[i].is_free==1){
             V(sem_SM);
             return i;
@@ -117,7 +117,7 @@ int m_bind(char src_ip[], uint16_t src_port, char dest_ip[], uint16_t dest_port)
     get_shared_resources();
     int sockfd=-1;
     P(sem_SM);
-    for(int i=0;i<25;i++){
+    for(int i=0;i<N;i++){
         if(SM[i].is_free==0 && SM[i].process_id==getpid()){
             sockfd=i;
             break;
@@ -127,7 +127,7 @@ int m_bind(char src_ip[], uint16_t src_port, char dest_ip[], uint16_t dest_port)
 
     // should never execute... just for safety
     P(sem_sock_info);
-    if(sockfd==-1){
+    if(sockfd==-1 || sockfd ==N){
         errno = ENOBUFS;
         sock_info->sock_id=0;
         sock_info->err_no=0;
@@ -177,11 +177,12 @@ ssize_t m_sendto(int m_sockfd, const void *buf, size_t len, int flags,
                  const struct sockaddr *dest_addr, socklen_t addrlen) {
     get_shared_resources();
     P(sem_SM);
-    char dest_ip[16];
+    char * dest_ip;
     uint16_t dest_port;
-    inet_ntop(AF_INET, &(((struct sockaddr_in *)dest_addr)->sin_addr), dest_ip, 16);
+    dest_ip = inet_ntoa(((struct sockaddr_in *)dest_addr)->sin_addr);
     dest_port=ntohs(((struct sockaddr_in *)dest_addr)->sin_port);
 
+    printf("m_sendto: %16s %d %16s %d\n", SM[m_sockfd].ip_address, SM[m_sockfd].port, dest_ip, dest_port);
     if(strcmp(SM[m_sockfd].ip_address, dest_ip)!=0 || SM[m_sockfd].port!=dest_port){
         errno = ENOTCONN;
         V(sem_SM);
@@ -224,7 +225,7 @@ ssize_t m_sendto(int m_sockfd, const void *buf, size_t len, int flags,
 
     SM[m_sockfd].swnd.wndw[seq_no]=buff_index;
     // SM[m_sockfd].swnd.size--;
-    strcpy(SM[m_sockfd].send_buffer[buff_index], buf);
+    strncpy(SM[m_sockfd].send_buffer[buff_index], buf, len);
     SM[m_sockfd].lastSendTime[seq_no]=-1;
     SM[m_sockfd].send_buffer_sz--;
     printf("m_sendto: %d %d %1024s %ld %d %d %d", SM[m_sockfd].swnd.wndw[seq_no], SM[m_sockfd].swnd.size, SM[m_sockfd].send_buffer[buff_index], SM[m_sockfd].lastSendTime[seq_no], SM[m_sockfd].send_buffer_sz, seq_no, buff_index);
@@ -247,16 +248,21 @@ ssize_t m_recvfrom(int sockfd, void *buf, size_t len, int flags,
     struct SM_entry * sm = SM + sockfd;
     if (sm->recv_buffer_valid[sm->recv_buffer_pointer]) {
         printf("m_recvfrom: 2\n");
+        printf("m_recvfrom: %1024s\n", sm->recv_buffer[sm->recv_buffer_pointer]);
         sm->recv_buffer_valid[sm->recv_buffer_pointer] = 0;
         sm->rwnd.size++;
         int seq = -1;
         for (int i = 0; i < 16; i++) if (sm->rwnd.wndw[i] == sm->recv_buffer_pointer) seq = i;
-        assert(seq != -1);
+        printf("m_recvfrom: seq %d\n", seq);
+        // assert(seq != -1);
         sm->rwnd.wndw[seq] = -1;
         sm->rwnd.wndw[(seq+5)%16] = sm->recv_buffer_pointer;
+        printf("m_recvfrom: 4\n");
+        strncpy(buf, sm->recv_buffer[sm->recv_buffer_pointer], (len < 1024) ? len : 1024);
+        printf("m_recvfrom: 5\n");
         sm->recv_buffer_pointer = (sm->recv_buffer_pointer + 1) % 5;
-        memcpy(buf, sm->recv_buffer[sm->recv_buffer_pointer], (len < 1024) ? len : 1024);
         V(sem_SM);
+        printf("m_recvfrom: 6\n");
         return (len < 1024) ? len : 1024;
     }
     printf("m_recvfrom: 3\n");
