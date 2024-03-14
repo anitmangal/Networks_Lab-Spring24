@@ -15,9 +15,9 @@
 #include <stdint.h> 
 #include <stdio.h>
 #include <string.h>
+
 // Custom socket type for MTP
 #define SOCK_MTP 3
-#define ENOTBOUND 1000  //????
 
 // defining T
 #define T 5

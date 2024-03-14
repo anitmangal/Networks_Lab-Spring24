@@ -156,7 +156,7 @@ ssize_t m_sendto(int m_sockfd, const void *buf, size_t len, int flags,
     dest_port=ntohs(((struct sockaddr_in *)dest_addr)->sin_port);
 
     if(strcmp(SM[m_sockfd].ip_address, dest_ip)!=0 || SM[m_sockfd].port!=dest_port){
-        errno = ENOTBOUND;      //????
+        errno = ENOTCONN;
         return -1;
     }
 
