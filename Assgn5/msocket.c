@@ -237,13 +237,16 @@ ssize_t m_recvfrom(int sockfd, void *buf, size_t len, int flags,
                    struct sockaddr *src_addr, socklen_t *addrlen) {
     get_shared_resources();
     P(sem_SM);
+    printf("m_recvfrom: starting\n");
     if (sockfd < 0 || sockfd >= N || SM[sockfd].is_free) {
         errno = EBADF;
         V(sem_SM);
         return -1;
     }
+    printf("m_recvfrom: 1\n");
     struct SM_entry * sm = SM + sockfd;
     if (sm->recv_buffer_valid[sm->recv_buffer_pointer]) {
+        printf("m_recvfrom: 2\n");
         sm->recv_buffer_valid[sm->recv_buffer_pointer] = 0;
         sm->rwnd.size++;
         int seq = -1;
@@ -256,6 +259,7 @@ ssize_t m_recvfrom(int sockfd, void *buf, size_t len, int flags,
         V(sem_SM);
         return (len < 1024) ? len : 1024;
     }
+    printf("m_recvfrom: 3\n");
     errno = ENOMSG;
     V(sem_SM);
     return -1;

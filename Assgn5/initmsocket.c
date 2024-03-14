@@ -40,7 +40,7 @@ void * R() {
         if (retval == -1) {
             perror("select()");
         }
-        else if (retval == 0) {
+        if (retval <= 0) {
             //timeout
             printf("R: Timeout\n");
             FD_ZERO(&readfds);
@@ -48,6 +48,7 @@ void * R() {
             printf("R: Timeout1\n");
             for (int i = 0; i < N; i++) {
                 if (SM[i].is_free == 0) {
+                    printf("R: Setting %d\n", SM[i].udp_socket_id);
                     FD_SET(SM[i].udp_socket_id, &readfds);
                     if (SM[i].udp_socket_id > nfds) nfds = SM[i].udp_socket_id;
 
@@ -186,6 +187,7 @@ void * S(){
                             sendto(SM[i].udp_socket_id, buffer, 1029, 0, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
                             SM[i].lastSendTime[j]=time(NULL);
                         }
+                        j++;
                     }
                 }
                 else{
@@ -200,14 +202,17 @@ void * S(){
                             buffer[4]=(j)%2+'0';
                             strncpy(buffer+5, SM[i].send_buffer[SM[i].swnd.wndw[j]], 1024);
                             printf("S: Sending %d\n", j);
-                            sendto(SM[i].udp_socket_id, buffer, 1029, 0, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
+                            int sendb = sendto(SM[i].udp_socket_id, buffer, 1029, 0, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
                             SM[i].lastSendTime[j]=time(NULL);
+                            printf("S: Sent %d at %d\n", sendb, j);
                         }
+                        j++;
                     }
                 }
             }
         }
         V(sem_SM);
+        printf("S: Done\n");
     }
 }
 
@@ -309,7 +314,7 @@ int main(){
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
     pthread_create(&S_thread, &attr, S, NULL);
     pthread_create(&R_thread, &attr, R, NULL);
-    pthread_create(&G_thread, &attr, G, NULL);
+    // pthread_create(&G_thread, &attr, G, NULL);
 
 
     // while loop
