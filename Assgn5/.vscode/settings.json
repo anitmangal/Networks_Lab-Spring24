@@ -4,6 +4,11 @@
         "stdlib.h": "c",
         "unistd.h": "c",
         "msocket.h": "c",
-        "inet.h": "c"
+        "inet.h": "c",
+        "sem.h": "c",
+        "ipc.h": "c",
+        "stdint.h": "c",
+        "socket.h": "c",
+        "pthread.h": "c"
     }
 }
