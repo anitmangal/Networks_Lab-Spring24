@@ -7,6 +7,8 @@ LIBS = -L. -lmsocket
 
 all: $(LIBNAME) initmsocket user1 user2
 
+apps: user1 user2
+
 $(LIBNAME): msocket.o
 	ar rcs $(LIBNAME) msocket.o
 
