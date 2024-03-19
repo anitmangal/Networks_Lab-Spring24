@@ -30,7 +30,7 @@ int main(int argc, char *argv[]){
         return 1;
     }
 
-    int fd=open("input.txt", O_RDONLY);
+    int fd=open("Sample200.txt", O_RDONLY);
     if(fd<0){
         perror("Error in opening file\n");
         return 1;
@@ -43,18 +43,28 @@ int main(int argc, char *argv[]){
     int readlen;
     while((readlen=read(fd, buffer, 1024))>0){
         printf("Sending %d bytes\n",readlen);
-        for (int i = 0; i < readlen; i++) {
-            printf("%c", buffer[i]);
-        }
-        printf("\n\n\n\n");
+        // for (int i = 0; i < readlen; i++) {
+        //     printf("%c", buffer[i]);
+        // }
+        // printf("\n\n\n\n");
         int sendlen;
-        if((sendlen=m_sendto(sockfd, buffer, readlen, 0, (struct sockaddr*)&serverAddr, sizeof(serverAddr)))<0){
+        // if((sendlen=m_sendto(sockfd, buffer, readlen, 0, (struct sockaddr*)&serverAddr, sizeof(serverAddr)))<0){
+        //     perror("Error in sending\n");
+        //     return 1;
+        // }
+        while(1){
+            while((sendlen=m_sendto(sockfd, buffer, readlen, 0, (struct sockaddr*)&serverAddr, sizeof(serverAddr)))<0 && errno==ENOBUFS){
+                sleep(1);
+            }
+            if(sendlen>=0)
+                break;
             perror("Error in sending\n");
             return 1;
         }
         printf("Sent %d bytes\n", sendlen);
     }
-    sleep(10);   // To ensure all messages are sent
+    printf("sent final bytes\n");
+    sleep(50);   // To ensure all messages are sent
 
     close(fd);
 

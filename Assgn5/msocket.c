@@ -194,7 +194,7 @@ ssize_t m_sendto(int m_sockfd, const void *buf, size_t len, int flags,
     dest_ip = inet_ntoa(((struct sockaddr_in *)dest_addr)->sin_addr);
     dest_port=ntohs(((struct sockaddr_in *)dest_addr)->sin_port);
 
-    printf("m_sendto: %16s %d %16s %d\n", SM[m_sockfd].ip_address, SM[m_sockfd].port, dest_ip, dest_port);
+    // printf("m_sendto: %16s %d %16s %d\n", SM[m_sockfd].ip_address, SM[m_sockfd].port, dest_ip, dest_port);
     if(strcmp(SM[m_sockfd].ip_address, dest_ip)!=0 || SM[m_sockfd].port!=dest_port){
         errno = ENOTCONN;
         V(sem_SM);
@@ -218,7 +218,7 @@ ssize_t m_sendto(int m_sockfd, const void *buf, size_t len, int flags,
         f=1;
         for(int i=0;i<16;i++){
             if(SM[m_sockfd].swnd.wndw[i]==buff_index){
-                printf("%d %d %d\n", i, SM[m_sockfd].swnd.wndw[i], buff_index);
+                // printf("%d %d %d\n", i, SM[m_sockfd].swnd.wndw[i], buff_index);
                 f=0;
                 break;
             }
@@ -241,8 +241,9 @@ ssize_t m_sendto(int m_sockfd, const void *buf, size_t len, int flags,
     SM[m_sockfd].lastSendTime[seq_no]=-1;
     SM[m_sockfd].send_buffer_sz--;
     SM[m_sockfd].lengthOfMessageSendBuffer[buff_index]=len;
-    printf("seq_no: %d, buff_index: %d, len: %d\n", seq_no, buff_index, len);
-    printf("m_sendto: %d %d %1024s %ld %d %d %d", SM[m_sockfd].swnd.wndw[seq_no], SM[m_sockfd].swnd.size, SM[m_sockfd].send_buffer[buff_index], SM[m_sockfd].lastSendTime[seq_no], SM[m_sockfd].send_buffer_sz, seq_no, buff_index);
+    printf("buffer_size: %d, seq_no: %d, buff_index: %d, len: %d\n", SM[m_sockfd].send_buffer_sz, seq_no, buff_index, len);
+    // printf("m_sendto: %d %d %1024s %ld %d %d %d", SM[m_sockfd].swnd.wndw[seq_no], SM[m_sockfd].swnd.size, SM[m_sockfd].send_buffer[buff_index], SM[m_sockfd].lastSendTime[seq_no], SM[m_sockfd].send_buffer_sz, seq_no, buff_index);
+    printf("m_sendto: %d %d %ld %d %d %d", SM[m_sockfd].swnd.wndw[seq_no], SM[m_sockfd].swnd.size, SM[m_sockfd].lastSendTime[seq_no], SM[m_sockfd].send_buffer_sz, seq_no, buff_index);
 
     V(sem_SM);
     return len;

@@ -41,29 +41,44 @@ int main(int argc, char *argv[]){
     serverAddr.sin_addr.s_addr = inet_addr(dest_ip);
     printf("Reading file\n");
     int recvlen;
-    while ((recvlen = m_recvfrom(sockfd, buffer, 1024, 0, (struct sockaddr*)&serverAddr, &addr_size))<=0){
-        printf("Checking recv\n");
-        if (recvlen <= 0) {
-            sleep(1);
-            continue;
+    // while ((recvlen = m_recvfrom(sockfd, buffer, 1024, 0, (struct sockaddr*)&serverAddr, &addr_size))<=0){
+    //     printf("Checking recv\n");
+    //     if (recvlen <= 0) {
+    //         sleep(1);
+    //         continue;
+    //     }
+    // }
+    // printf("Writing %d bytes\n", recvlen);
+    // if(write(fd, buffer, recvlen)<0){
+    //     perror("Error in writing to file\n");
+    //     return 1;
+    // }
+    // while ((recvlen = m_recvfrom(sockfd, buffer, 1024, 0, (struct sockaddr*)&serverAddr, &addr_size))<=0){
+    //     printf("Checking recv\n");
+    //     if (recvlen <= 0) {
+    //         sleep(1);
+    //         continue;
+    //     }
+    // }
+    // printf("Writing\n");
+    // if(write(fd, buffer, recvlen)<0){
+    //     perror("Error in writing to file\n");
+    //     return 1;
+    // }
+
+    while(1){
+        while((recvlen = m_recvfrom(sockfd, buffer, 1024, 0, (struct sockaddr*)&serverAddr, &addr_size))<=0){
+            printf("Checking recv\n");
+            if (recvlen <= 0) {
+                sleep(1);
+                continue;
+            }
         }
-    }
-    printf("Writing %d bytes\n", recvlen);
-    if(write(fd, buffer, recvlen)<0){
-        perror("Error in writing to file\n");
-        return 1;
-    }
-    while ((recvlen = m_recvfrom(sockfd, buffer, 1024, 0, (struct sockaddr*)&serverAddr, &addr_size))<=0){
-        printf("Checking recv\n");
-        if (recvlen <= 0) {
-            sleep(1);
-            continue;
+        printf("Writing %d bytes\n", recvlen);
+        if(write(fd, buffer, recvlen)<0){
+            perror("Error in writing to file\n");
+            return 1;
         }
-    }
-    printf("Writing\n");
-    if(write(fd, buffer, recvlen)<0){
-        perror("Error in writing to file\n");
-        return 1;
     }
 
     close(fd);
