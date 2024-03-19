@@ -1,0 +1,81 @@
+I) Data Structures used:
+
+    1) window
+        a) int wndw[16]:
+            - for send window:
+                -1: not sent OR sent and acked
+                i: sent but not acked, ith message in send buffer for send window
+            - for recv window:
+                -1: not expected
+                i: expected, ith message in recv buffer for recv window 
+        b) int size: size of window
+        c) int start_seq: start sequence number of window
+
+    2) SM_entry (entry for the shared memory table for MTP sockets)
+        a) int is_free: whether the MTP socket is free or allotted
+        b) pid_t process_id: process id of the process that created the MTP socket
+        c) int udp_socket_id: mapping from the MTP socket i to the corresponding UDP socket ID
+        d) char ip_address[16]: IP address of the other end of the MTP socket (assuming IPv4)
+        e) uint16_t port: port number of the other end of the MTP socket
+        f) char send_buffer[10][1024]: send buffer for the MTP socket
+        g) int send_buffer_sz: size of send buffer
+        h) int lengthOfMessageSendBuffer[10]: length of the ith message in send buffer
+        i) char recv_buffer[5][1024]: recv buffer for the MTP socket
+        j) int recv_buffer_pointer: pointer to the next location in recv_buffer for application to read from
+        k) int recv_buffer_valid[5]: whether the ith message in recv buffer is valid or not
+        l) int lengthOfMessageReceiveBuffer[5]: length of the ith message in recv buffer
+        m) struct window swnd: send window for the MTP socket
+        n) struct window rwnd: recv window for the MTP socket
+        o) int nospace: whether receive buffer is full or not
+        p) time_t lastSendTime[16]: time at which message with ith sequence number was last sent (-1 if never sent in the past)
+
+    3) SOCK_INFO (as specified in problem statement)
+        a) int sock_id: stores udp socket id
+        b) char ip_address[16]: stores ip address
+        c) uint16_t port: stores port number
+        d) int err_no: stores error number
+
+II) Functions:
+    
+        1) int m_socket(int domain, int type, int protocol):
+            - checks if the shared memory table has space for a new MTP socket
+            - if yes, takes first free entry and inserts the details of the new MTP socket (gotten from the main function of initsocket.c) in the entry
+            - returns the MTP socket id on success and -1 on failure
+    
+        2) int m_bind(char src_ip[], uint16_t src_port, char dest_ip[], uint16_t dest_port):
+            - binds the MTP socket with the src ip address and src port number
+            - also adds details about destination (*the term 'destination' is used loosely, it means the other end of the connection) ip address and port number in the shared memory table
+            - returns 0 on success and -1 on failure
+    
+        3) ssize_t m_sendto(int m_sockfd, const void *buf, size_t len, int flags,
+                 const struct sockaddr *dest_addr, socklen_t addrlen):
+            - writes the message to the sender side message buffer if the destination IP/Port matches with the bounded IP/Port as set through m_bind()
+            - returns 0 on success and -1 on failure (along with relevant error codes like ENOBUFS, ENOTCONN, etc.)
+    
+        4) ssize_t m_recvfrom(int sockfd, void *buf, size_t len, int flags,
+                   struct sockaddr *src_addr, socklen_t *addrlen):
+            - looks up the receiver-side message buffer to see if any message is already received.
+            - If yes, it returns the first message (in-order) and deletes that message from the table.
+            - If not, it returns with -1 and sets a global error variable to ENOMSG, indicating no message has been available in the message buffer.
+            - non-blocking.
+    
+        5) int m_close(int sock_id):
+            - marks the corresponding entry in the shared memory table as free
+    
+        6) void sigHandler(int signum):
+            - signal handler
+        
+        7) void *R():
+            - receiver thread function (???? pls anit write this thank you)
+
+        8) void *S():
+            - sender thread function (???? I NEED TO WRITE)
+
+        9) void *G():
+            - garbage collector thread function (???? pls anit write this thank you)
+
+        10) main function of initsocket.c:
+            - responsible for creating and initialising shared memory table, semaphores, etc.
+            - has a while loop that aids m_socket and m_bind functions.
+
+III) Table with findings (???? yet to do)

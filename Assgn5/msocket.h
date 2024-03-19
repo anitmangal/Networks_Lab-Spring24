@@ -49,12 +49,12 @@ struct SM_entry {
     pid_t process_id;          // (ii) process ID for the process that created the MTP socket
     int udp_socket_id;         // (iii) mapping from the MTP socket i to the corresponding UDP socket ID
     char ip_address[16];       // (iv) IP address of the other end of the MTP socket (assuming IPv4)
-    uint16_t port;             // (iv) Port address of the other end of the MTP socket
+    uint16_t port;             // (iv) Port number of the other end of the MTP socket
     char send_buffer[10][1024];    // (v) send buffer
     int send_buffer_sz;
     int lengthOfMessageSendBuffer[10];
     char recv_buffer[5][1024];    // (vi) receive buffer
-    int recv_buffer_pointer;   // pointer to the next location in recv_buffer for application to read
+    int recv_buffer_pointer;   // pointer to the next location in recv_buffer for application to read from
     int recv_buffer_valid[5];  // If the message at index i in recv_buffer is valid or not
     int lengthOfMessageReceiveBuffer[10];
     struct window swnd;        // (vii) send window

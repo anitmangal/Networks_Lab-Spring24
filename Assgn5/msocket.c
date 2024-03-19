@@ -208,7 +208,7 @@ ssize_t m_sendto(int m_sockfd, const void *buf, size_t len, int flags,
     }
 
     int seq_no=SM[m_sockfd].swnd.start_seq;
-    while(SM[m_sockfd].swnd.wndw[seq_no]!=-1){
+    while(SM[m_sockfd].swnd.wndw[seq_no]!=-1){      //???? i shoudldnt need to add an extra check to limit to 5 iterations, but can that be an issue?
         seq_no=(seq_no+1)%16;
     }
 
