@@ -262,10 +262,13 @@ ssize_t m_recvfrom(int sockfd, void *buf, size_t len, int flags,
         printf("m_recvfrom: 4\n");
         strncpy(buf, sm->recv_buffer[sm->recv_buffer_pointer], (len < 1024) ? len : 1024);
         printf("m_recvfrom: 5\n");
+        int length = sm->lengthOfMessageReceiveBuffer[sm->recv_buffer_pointer];
         sm->recv_buffer_pointer = (sm->recv_buffer_pointer + 1) % 5;
         V(sem_SM);
         printf("m_recvfrom: 6\n");
-        return (len < 1024) ? len : 1024;
+        printf("m_recvfrom: length %d\n", length);
+        // return (len < 1024) ? len : 1024;
+        return (len < length) ? len : length;
     }
     printf("m_recvfrom: 3\n");
     errno = ENOMSG;

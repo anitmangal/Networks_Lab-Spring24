@@ -136,6 +136,7 @@ void * R() {
                                 }
                             }
                             printf("R: Received %d of length %d\n", seq, len);
+                            SM[i].lengthOfMessageReceiveBuffer[SM[i].rwnd.wndw[seq]] = len;
                             // Nospace
                             if (SM[i].rwnd.size == 0) {
                                 SM[i].nospace = 1;
