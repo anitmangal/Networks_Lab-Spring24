@@ -81,11 +81,12 @@ void * R() {
             P(sem_SM);
             for (int i = 0; i < N; i++) {
                 if (FD_ISSET(SM[i].udp_socket_id, &readyfds)) {
-                    char buffer[1029];
+                    char buffer[1040];
                     struct sockaddr_in cliaddr;
                     unsigned int len = sizeof(cliaddr);
                     printf("R: Receiving from %d\n", SM[i].udp_socket_id); // Change this, change works???
-                    int n = recvfrom(SM[i].udp_socket_id, buffer, 1029, 0, (struct sockaddr *)&cliaddr, &len);
+                    int n = recvfrom(SM[i].udp_socket_id, buffer, 1040, 0, (struct sockaddr *)&cliaddr, &len);
+                    printf("R: n=%d\n", n);
                     if (n < 0) {
                         perror("recvfrom()");
                     }
@@ -107,12 +108,17 @@ void * R() {
                         }
                         else {
                             // DATA
+                            printf("R: ");
+                            for(int j=1;j<15;j++){
+                                printf("%c",buffer[j]);
+                            }
+                            printf("\n");
                             int seq = (buffer[1]-'0')*8 + (buffer[2]-'0')*4 + (buffer[3]-'0')*2 + (buffer[4]-'0');
-                            int len = (buffer[5]-'0')*512 + (buffer[6]-'0')*256 + (buffer[7]-'0')*128 + (buffer[8]-'0')*64 + (buffer[9]-'0')*32 + (buffer[10]-'0')*16 + (buffer[11]-'0')*8 + (buffer[12]-'0')*4 + (buffer[13]-'0')*2 + (buffer[14]-'0');
+                            int len = (buffer[5]-'0')*1024 + (buffer[6]-'0')*512 + (buffer[7]-'0')*256 + (buffer[8]-'0')*128 + (buffer[9]-'0')*64 + (buffer[10]-'0')*32 + (buffer[11]-'0')*16 + (buffer[12]-'0')*8 + (buffer[13]-'0')*4 + (buffer[14]-'0')*2 + (buffer[15]-'0');
                             if (seq == SM[i].rwnd.start_seq) {
                                 // In order message
                                 int buff_ind = SM[i].rwnd.wndw[seq];
-                                strncpy(SM[i].recv_buffer[buff_ind], buffer+15, len);
+                                strncpy(SM[i].recv_buffer[buff_ind], buffer+16, len);
                                 SM[i].recv_buffer_valid[buff_ind] = 1;
                                 SM[i].rwnd.size--;
                                 // Find the next in order message
@@ -124,11 +130,12 @@ void * R() {
                                 // Keep out of order message if in rwnd, else discard. If duplicate, discard.
                                 if (SM[i].rwnd.wndw[seq] >= 0 && !SM[i].recv_buffer_valid[SM[i].rwnd.wndw[seq]]) {
                                     int buff_ind = SM[i].rwnd.wndw[seq];
-                                    strncpy(SM[i].recv_buffer[buff_ind], buffer+15, len);
+                                    strncpy(SM[i].recv_buffer[buff_ind], buffer+16, len);
                                     SM[i].recv_buffer_valid[buff_ind] = 1;
                                     SM[i].rwnd.size--;
                                 }
                             }
+                            printf("R: Received %d of length %d\n", seq, len);
                             // Nospace
                             if (SM[i].rwnd.size == 0) {
                                 SM[i].nospace = 1;
@@ -175,26 +182,32 @@ void * S(){
                     int j=SM[i].swnd.start_seq;
                     while(j<SM[i].swnd.start_seq+5){
                         if(SM[i].swnd.wndw[j]!=-1){
-                            char buffer[1039];
+                            char buffer[1040];
                             buffer[0]='1';
                             buffer[1]=(j>>3)%2+'0';
                             buffer[2]=(j>>2)%2+'0';
                             buffer[3]=(j>>1)%2+'0';
                             buffer[4]=(j)%2+'0';
                             int len=SM[i].lengthOfMessageSendBuffer[SM[i].swnd.wndw[j]];
-                            buffer[5]=(len>>9)%2+'0';
-                            buffer[6]=(len>>8)%2+'0';
-                            buffer[7]=(len>>7)%2+'0';
-                            buffer[8]=(len>>6)%2+'0';
-                            buffer[9]=(len>>5)%2+'0';
-                            buffer[10]=(len>>4)%2+'0';
-                            buffer[11]=(len>>3)%2+'0';
-                            buffer[12]=(len>>2)%2+'0';
-                            buffer[13]=(len>>1)%2+'0';
-                            buffer[14]=(len)%2+'0';
-                            strncpy(buffer+15, SM[i].send_buffer[SM[i].swnd.wndw[j]], 1024);
+                            printf("S: Resending %d of length %d\n", j, len);
+                            for(int k=0;k<len;k++){
+                                printf("%c",SM[i].send_buffer[SM[i].swnd.wndw[j]][k]);
+                            }
+                            printf("\n");
+                            buffer[5]=(len>>10)%2+'0';
+                            buffer[6]=(len>>9)%2+'0';
+                            buffer[7]=(len>>8)%2+'0';
+                            buffer[8]=(len>>7)%2+'0';
+                            buffer[9]=(len>>6)%2+'0';
+                            buffer[10]=(len>>5)%2+'0';
+                            buffer[11]=(len>>4)%2+'0';
+                            buffer[12]=(len>>3)%2+'0';
+                            buffer[13]=(len>>2)%2+'0';
+                            buffer[14]=(len>>1)%2+'0';
+                            buffer[15]=(len)%2+'0';
+                            strncpy(buffer+16, SM[i].send_buffer[SM[i].swnd.wndw[j]], len);
                             printf("S: Resending %d\n", j);
-                            int sendb = sendto(SM[i].udp_socket_id, buffer, 15+SM[i].lengthOfMessageSendBuffer[SM[i].swnd.wndw[j]], 0, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
+                            int sendb = sendto(SM[i].udp_socket_id, buffer, 16+len, 0, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
                             SM[i].lastSendTime[j]=time(NULL);
                             printf("S: Resent %d at %d\n", sendb, j);
                         }
@@ -205,26 +218,27 @@ void * S(){
                     int j=SM[i].swnd.start_seq;
                     while(j<SM[i].swnd.start_seq+5){
                         if(SM[i].swnd.wndw[j]!=-1 && SM[i].lastSendTime[j]==-1){
-                            char buffer[1029];
+                            char buffer[1040];
                             buffer[0]='1';
                             buffer[1]=(j>>3)%2+'0';
                             buffer[2]=(j>>2)%2+'0';
                             buffer[3]=(j>>1)%2+'0';
                             buffer[4]=(j)%2+'0';
                             int len=SM[i].lengthOfMessageSendBuffer[SM[i].swnd.wndw[j]];
-                            buffer[5]=(len>>9)%2+'0';
-                            buffer[6]=(len>>8)%2+'0';
-                            buffer[7]=(len>>7)%2+'0';
-                            buffer[8]=(len>>6)%2+'0';
-                            buffer[9]=(len>>5)%2+'0';
-                            buffer[10]=(len>>4)%2+'0';
-                            buffer[11]=(len>>3)%2+'0';
-                            buffer[12]=(len>>2)%2+'0';
-                            buffer[13]=(len>>1)%2+'0';
-                            buffer[14]=(len)%2+'0';
-                            strncpy(buffer+15, SM[i].send_buffer[SM[i].swnd.wndw[j]], 1024);
+                            buffer[5]=(len>>10)%2+'0';
+                            buffer[6]=(len>>9)%2+'0';
+                            buffer[7]=(len>>8)%2+'0';
+                            buffer[8]=(len>>7)%2+'0';
+                            buffer[9]=(len>>6)%2+'0';
+                            buffer[10]=(len>>5)%2+'0';
+                            buffer[11]=(len>>4)%2+'0';
+                            buffer[12]=(len>>3)%2+'0';
+                            buffer[13]=(len>>2)%2+'0';
+                            buffer[14]=(len>>1)%2+'0';
+                            buffer[15]=(len)%2+'0';
+                            strncpy(buffer+16, SM[i].send_buffer[SM[i].swnd.wndw[j]], len);
                             printf("S: Sending %d\n", j);
-                            int sendb = sendto(SM[i].udp_socket_id, buffer, 15+SM[i].lengthOfMessageSendBuffer[SM[i].swnd.wndw[j]], 0, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
+                            int sendb = sendto(SM[i].udp_socket_id, buffer, 16+len, 0, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
                             SM[i].lastSendTime[j]=time(NULL);
                             printf("S: Sent %d at %d\n", sendb, j);
                         }
