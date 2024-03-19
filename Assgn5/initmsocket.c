@@ -8,7 +8,7 @@
 
 /*
 
-    Each message will have a 5 bit header. 1 bit for type (0 = ACK, 1 = DATA), 4 bit for sequence number.
+    Each message will have a 5 bit header. 1 bit for type (0 = ACK, 1 = DATA), 4 bit for sequence number, 11 bits for length of data (max 1024 bytes).
     Next bits are either 3-bit rwnd size (for ACK) or 1 KB data (for DATA).
 
 */
@@ -260,12 +260,7 @@ void * G() {
         for (int i = 0; i < N; i++) {
             if (SM[i].is_free) continue;                    // Free entry
             if (kill(SM[i].process_id, 0) == 0) continue;   // Process still running
-            printf("G: Process %d killed\n", SM[i].process_id);
-            int socket_id = SM[i].udp_socket_id;
-            int j;
-            for (j = 0; j < N; j++) if (i != j && SM[j].udp_socket_id == socket_id) break;
-            if (j == N) m_close(i);                   // No other entry with same socket_id, close the socket and mark the entry as free
-            else SM[i].is_free = 1;                    // The socket file descriptor was replaced by another socket, just mark the entry as free
+            SM[i].is_free = 1;
         }
         V(sem_SM);
     }
@@ -312,29 +307,29 @@ int main(){
     // initialising SM
     for(int i=0;i<N;i++){
         SM[i].is_free=1;
-        SM[i].udp_socket_id=0;
-        SM[i].ip_address[0]='\0';
-        SM[i].port=0;
+        // SM[i].udp_socket_id=0;
+        // SM[i].ip_address[0]='\0';
+        // SM[i].port=0;
 
-        // swnd. Need to initialise swnd.wndw
-        for(int j=0;j<16;j++) SM[i].swnd.wndw[j]=-1;          // Change this, change works???
-        SM[i].swnd.size=5;
-        SM[i].swnd.start_seq=1;
-        SM[i].send_buffer_sz=10;
+        // // swnd
+        // for(int j=0;j<16;j++) SM[i].swnd.wndw[j]=-1;          // Change this, change works???
+        // SM[i].swnd.size=5;
+        // SM[i].swnd.start_seq=1;
+        // SM[i].send_buffer_sz=10;
 
-        // rwnd
-        for (int j = 0; j < 16; j++) {
-            if (j > 0 && j < 6) SM[i].rwnd.wndw[j] = j-1;
-            else SM[i].rwnd.wndw[j] = -1;
-        }
-        SM[i].rwnd.size=5;
-        SM[i].rwnd.start_seq=1;
+        // // rwnd
+        // for (int j = 0; j < 16; j++) {
+        //     if (j > 0 && j < 6) SM[i].rwnd.wndw[j] = j-1;
+        //     else SM[i].rwnd.wndw[j] = -1;
+        // }
+        // SM[i].rwnd.size=5;
+        // SM[i].rwnd.start_seq=1;
 
-        for (int j = 0; j < 5; j++) SM[i].recv_buffer_valid[j] = 0;
-        SM[i].recv_buffer_pointer=0;
+        // for (int j = 0; j < 5; j++) SM[i].recv_buffer_valid[j] = 0;
+        // SM[i].recv_buffer_pointer=0;
 
-        SM[i].nospace=0;
-        for(int j=0;j<16;j++) SM[i].lastSendTime[j]=-1;           // Change this, change works????
+        // SM[i].nospace=0;
+        // for(int j=0;j<16;j++) SM[i].lastSendTime[j]=-1;           // Change this, change works????
     }
 
     // initialising semaphores
