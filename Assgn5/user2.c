@@ -42,7 +42,7 @@ int main(){
             continue;
         }
     }
-    printf("Writing\n");
+    printf("Writing %d bytes\n", recvlen);
     if(write(fd, buffer, recvlen)<0){
         perror("Error in writing to file\n");
         return 1;
@@ -54,11 +54,11 @@ int main(){
             continue;
         }
     }
-    printf("Writing\n");
-    if(write(fd, buffer, recvlen)<0){
-        perror("Error in writing to file\n");
-        return 1;
-    }
+    // printf("Writing\n");
+    // if(write(fd, buffer, recvlen)<0){
+    //     perror("Error in writing to file\n");
+    //     return 1;
+    // }
 
     close(fd);
 

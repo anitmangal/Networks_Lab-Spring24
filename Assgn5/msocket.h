@@ -52,9 +52,11 @@ struct SM_entry {
     uint16_t port;             // (iv) Port address of the other end of the MTP socket
     char send_buffer[10][1024];    // (v) send buffer
     int send_buffer_sz;
+    int lengthOfMessageSendBuffer[10];
     char recv_buffer[5][1024];    // (vi) receive buffer
     int recv_buffer_pointer;   // pointer to the next location in recv_buffer for application to read
     int recv_buffer_valid[5];  // If the message at index i in recv_buffer is valid or not
+    int lengthOfMessageReceiveBuffer[10];
     struct window swnd;        // (vii) send window
     struct window rwnd;        // (viii) receive window
     int nospace;               // whether receive buffer has space or not

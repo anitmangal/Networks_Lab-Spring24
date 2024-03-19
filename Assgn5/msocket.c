@@ -228,6 +228,7 @@ ssize_t m_sendto(int m_sockfd, const void *buf, size_t len, int flags,
     strncpy(SM[m_sockfd].send_buffer[buff_index], buf, len);
     SM[m_sockfd].lastSendTime[seq_no]=-1;
     SM[m_sockfd].send_buffer_sz--;
+    SM[m_sockfd].lengthOfMessageSendBuffer[buff_index]=len;
     printf("m_sendto: %d %d %1024s %ld %d %d %d", SM[m_sockfd].swnd.wndw[seq_no], SM[m_sockfd].swnd.size, SM[m_sockfd].send_buffer[buff_index], SM[m_sockfd].lastSendTime[seq_no], SM[m_sockfd].send_buffer_sz, seq_no, buff_index);
 
     V(sem_SM);

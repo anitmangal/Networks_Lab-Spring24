@@ -38,7 +38,7 @@ int main(){
     printf("Reading file\n");
     int readlen;
     while((readlen=read(fd, buffer, 1024))>0){
-        printf("Sending\n");
+        printf("Sending %d bytes\n",readlen);
         for (int i = 0; i < readlen; i++) {
             printf("%c", buffer[i]);
         }
