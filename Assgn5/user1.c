@@ -6,7 +6,11 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 
-int main(){
+int main(int argc, char *argv[]){
+    if(argc!=3){
+        printf("Usage: %s <src_port> <dest_port>\n", argv[0]);
+        return 1;
+    }
     int sockfd;
     struct sockaddr_in serverAddr;
     char buffer[1024];
@@ -18,8 +22,8 @@ int main(){
     
     char src_ip[16]="127.0.0.1";
     char dest_ip[16]="127.0.0.1";
-    uint16_t src_port=4000;
-    uint16_t dest_port=3000;
+    uint16_t src_port=atoi(argv[1]);
+    uint16_t dest_port=atoi(argv[2]);
 
     if(m_bind(src_ip, src_port, dest_ip, dest_port)<0){
         perror("Error in binding\n");
