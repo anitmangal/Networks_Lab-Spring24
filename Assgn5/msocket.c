@@ -100,6 +100,18 @@ int m_socket(int domain, int type, int protocol) {
     SM[i].is_free=0;
     SM[i].process_id=getpid();
     SM[i].udp_socket_id=sock_info->sock_id;
+    for (int j = 0; j < 16; j++) {
+        SM[i].swnd.wndw[j] = -1;
+        SM[i].lastSendTime[j] = -1;
+        if (j>0 && j < 6) SM[i].rwnd.wndw[j] = j-1;
+        else SM[i].rwnd.wndw[j] = -1;
+    }
+    SM[i].swnd.size=SM[i].rwnd.size=5;
+    SM[i].swnd.start_seq=SM[i].rwnd.start_seq=1;
+    SM[i].send_buffer_sz=10;
+    for (int j = 0; j < 5; j++) SM[i].recv_buffer_valid[j] = 0;
+    SM[i].recv_buffer_pointer=0;
+    SM[i].nospace=0;
     V(sem_SM);
     
     // resetting sock_info
@@ -275,8 +287,9 @@ ssize_t m_recvfrom(int sockfd, void *buf, size_t len, int flags,
 
 int m_close(int sockfd) {
     get_shared_resources();
-    close(SM[sockfd].udp_socket_id);
+    P(sem_SM);
     SM[sockfd].is_free=1;
+    V(sem_SM);
     return 0;
 }
 

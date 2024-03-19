@@ -28,7 +28,9 @@ int main(int argc, char *argv[]){
         return 1;
     }
 
-    int fd=open("new.txt", O_WRONLY | O_CREAT, 0666);
+    char filename[100];
+    sprintf(filename, "new_%d.txt", src_port);
+    int fd=open(filename, O_WRONLY | O_CREAT, 0666);
     if(fd<0){
         perror("Error in opening/creating file\n");
         return 1;
@@ -58,11 +60,11 @@ int main(int argc, char *argv[]){
             continue;
         }
     }
-    // printf("Writing\n");
-    // if(write(fd, buffer, recvlen)<0){
-    //     perror("Error in writing to file\n");
-    //     return 1;
-    // }
+    printf("Writing\n");
+    if(write(fd, buffer, recvlen)<0){
+        perror("Error in writing to file\n");
+        return 1;
+    }
 
     close(fd);
 
