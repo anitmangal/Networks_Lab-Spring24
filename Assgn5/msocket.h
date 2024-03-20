@@ -21,7 +21,7 @@
 
 // defining T
 #define T 5
-#define p 0.05
+#define p 0.5
 #define N 25    
                    
 #define P(s) semop(s, &pop, 1)  /* pop is the structure we pass for doing
