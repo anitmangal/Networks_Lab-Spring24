@@ -86,6 +86,10 @@ void * R() {
                     unsigned int len = sizeof(cliaddr);
                     // printf("R: Receiving from %d\n", SM[i].udp_socket_id); // Change this, change works???
                     int n = recvfrom(SM[i].udp_socket_id, buffer, 1040, 0, (struct sockaddr *)&cliaddr, &len);
+                    if (dropMessage(p)) {
+                        printf("R: Dropped\n");
+                        continue;
+                    }
                     // printf("R: n=%d\n", n);
                     if (n < 0) {
                         perror("recvfrom()");
@@ -97,8 +101,8 @@ void * R() {
                             int rwnd = (buffer[5]-'0')*4 + (buffer[6]-'0')*2 + (buffer[7]-'0');
                             if (SM[i].swnd.wndw[seq] >= 0) {
                                 int j = SM[i].swnd.start_seq;
-                                printf("sent buffer size: %d\n", SM[i].send_buffer_sz);
-                                while (j != seq) {
+                                printf("sent buffer size: %d, seq: %d, rwndsize: %d\n", SM[i].send_buffer_sz, seq, rwnd);
+                                while (j != (seq+1)%16) {
                                     SM[i].swnd.wndw[j] = -1;
                                     SM[i].send_buffer_sz++;
                                     j = (j+1)%16;

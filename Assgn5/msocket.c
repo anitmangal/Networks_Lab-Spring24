@@ -237,7 +237,8 @@ ssize_t m_sendto(int m_sockfd, const void *buf, size_t len, int flags,
 
     SM[m_sockfd].swnd.wndw[seq_no]=buff_index;
     // SM[m_sockfd].swnd.size--;
-    strncpy(SM[m_sockfd].send_buffer[buff_index], buf, len);
+    // strncpy(SM[m_sockfd].send_buffer[buff_index], buf, len);
+    memcpy(SM[m_sockfd].send_buffer[buff_index], buf, len);
     SM[m_sockfd].lastSendTime[seq_no]=-1;
     SM[m_sockfd].send_buffer_sz--;
     SM[m_sockfd].lengthOfMessageSendBuffer[buff_index]=len;
@@ -273,7 +274,8 @@ ssize_t m_recvfrom(int sockfd, void *buf, size_t len, int flags,
         sm->rwnd.wndw[seq] = -1;
         sm->rwnd.wndw[(seq+5)%16] = sm->recv_buffer_pointer;
         printf("m_recvfrom: 4\n");
-        strncpy(buf, sm->recv_buffer[sm->recv_buffer_pointer], (len < 1024) ? len : 1024);
+        // strncpy(buf, sm->recv_buffer[sm->recv_buffer_pointer], (len < 1024) ? len : 1024);
+        memcpy(buf, sm->recv_buffer[sm->recv_buffer_pointer], (len < 1024) ? len : 1024);
         printf("m_recvfrom: 5\n");
         int length = sm->lengthOfMessageReceiveBuffer[sm->recv_buffer_pointer];
         sm->recv_buffer_pointer = (sm->recv_buffer_pointer + 1) % 5;
