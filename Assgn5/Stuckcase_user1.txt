@@ -1,0 +1,196 @@
+Binding successful: 0 16598 16598 3        127.0.0.1 3000 0
+Reading file
+Sending 1024 bytes
+buffer_size: 9, seq_no: 1, buff_index: 0, len: 1024
+m_sendto: 0 5 -1 9 1 0Sent 1024 bytes
+Sending 1024 bytes
+buffer_size: 8, seq_no: 2, buff_index: 1, len: 1024
+m_sendto: 1 5 -1 8 2 1Sent 1024 bytes
+Sending 1024 bytes
+buffer_size: 7, seq_no: 3, buff_index: 2, len: 1024
+m_sendto: 2 5 -1 7 3 2Sent 1024 bytes
+Sending 1024 bytes
+buffer_size: 6, seq_no: 4, buff_index: 3, len: 1024
+m_sendto: 3 5 -1 6 4 3Sent 1024 bytes
+Sending 1024 bytes
+buffer_size: 5, seq_no: 5, buff_index: 4, len: 1024
+m_sendto: 4 5 -1 5 5 4Sent 1024 bytes
+Sending 1024 bytes
+buffer_size: 4, seq_no: 6, buff_index: 5, len: 1024
+m_sendto: 5 5 -1 4 6 5Sent 1024 bytes
+Sending 1024 bytes
+buffer_size: 3, seq_no: 7, buff_index: 6, len: 1024
+m_sendto: 6 5 -1 3 7 6Sent 1024 bytes
+Sending 1024 bytes
+buffer_size: 2, seq_no: 8, buff_index: 7, len: 1024
+m_sendto: 7 5 -1 2 8 7Sent 1024 bytes
+Sending 1024 bytes
+buffer_size: 1, seq_no: 9, buff_index: 8, len: 1024
+m_sendto: 8 5 -1 1 9 8Sent 1024 bytes
+Sending 1024 bytes
+buffer_size: 0, seq_no: 10, buff_index: 9, len: 1024
+m_sendto: 9 5 -1 0 10 9Sent 1024 bytes
+Sending 1024 bytes
+buffer_size: 1, seq_no: 11, buff_index: 0, len: 1024
+m_sendto: 0 3 -1 1 11 0Sent 1024 bytes
+Sending 1024 bytes
+buffer_size: 0, seq_no: 12, buff_index: 1, len: 1024
+m_sendto: 1 3 -1 0 12 1Sent 1024 bytes
+Sending 1024 bytes
+buffer_size: 1, seq_no: 13, buff_index: 2, len: 1024
+m_sendto: 2 1 -1 1 13 2Sent 1024 bytes
+Sending 1024 bytes
+buffer_size: 0, seq_no: 14, buff_index: 3, len: 1024
+m_sendto: 3 1 -1 0 14 3Sent 1024 bytes
+Sending 1024 bytes
+buffer_size: 3, seq_no: 15, buff_index: 4, len: 1024
+m_sendto: 4 3 -1 3 15 4Sent 1024 bytes
+Sending 1024 bytes
+buffer_size: 2, seq_no: 0, buff_index: 5, len: 1024
+m_sendto: 5 3 -1 2 0 5Sent 1024 bytes
+Sending 1024 bytes
+buffer_size: 1, seq_no: 1, buff_index: 6, len: 1024
+m_sendto: 6 3 -1 1 1 6Sent 1024 bytes
+Sending 1024 bytes
+buffer_size: 0, seq_no: 2, buff_index: 7, len: 1024
+m_sendto: 7 3 -1 0 2 7Sent 1024 bytes
+Sending 1024 bytes
+buffer_size: 1, seq_no: 3, buff_index: 8, len: 1024
+m_sendto: 8 2 -1 1 3 8Sent 1024 bytes
+Sending 1024 bytes
+buffer_size: 0, seq_no: 4, buff_index: 9, len: 1024
+m_sendto: 9 2 -1 0 4 9Sent 1024 bytes
+Sending 1024 bytes
+buffer_size: 1, seq_no: 5, buff_index: 0, len: 1024
+m_sendto: 0 3 -1 1 5 0Sent 1024 bytes
+Sending 1024 bytes
+buffer_size: 0, seq_no: 6, buff_index: 1, len: 1024
+m_sendto: 1 3 -1 0 6 1Sent 1024 bytes
+Sending 1024 bytes
+buffer_size: 1, seq_no: 7, buff_index: 2, len: 1024
+m_sendto: 2 1 -1 1 7 2Sent 1024 bytes
+Sending 1024 bytes
+buffer_size: 0, seq_no: 8, buff_index: 3, len: 1024
+m_sendto: 3 1 -1 0 8 3Sent 1024 bytes
+Sending 1024 bytes
+buffer_size: 4, seq_no: 9, buff_index: 4, len: 1024
+m_sendto: 4 -7 -1 4 9 4Sent 1024 bytes
+Sending 1024 bytes
+buffer_size: 3, seq_no: 10, buff_index: 5, len: 1024
+m_sendto: 5 -7 -1 3 10 5Sent 1024 bytes
+Sending 1024 bytes
+buffer_size: 2, seq_no: 11, buff_index: 6, len: 1024
+m_sendto: 6 -7 -1 2 11 6Sent 1024 bytes
+Sending 1024 bytes
+buffer_size: 1, seq_no: 12, buff_index: 7, len: 1024
+m_sendto: 7 -7 -1 1 12 7Sent 1024 bytes
+Sending 1024 bytes
+buffer_size: 0, seq_no: 13, buff_index: 8, len: 1024
+m_sendto: 8 -7 -1 0 13 8Sent 1024 bytes
+Sending 1024 bytes
+buffer_size: 4, seq_no: 14, buff_index: 0, len: 1024
+m_sendto: 0 -7 -1 4 14 0Sent 1024 bytes
+Sending 1024 bytes
+buffer_size: 3, seq_no: 15, buff_index: 1, len: 1024
+m_sendto: 1 -7 -1 3 15 1Sent 1024 bytes
+Sending 1024 bytes
+buffer_size: 2, seq_no: 0, buff_index: 2, len: 1024
+m_sendto: 2 -7 -1 2 0 2Sent 1024 bytes
+Sending 1024 bytes
+buffer_size: 1, seq_no: 1, buff_index: 3, len: 1024
+m_sendto: 3 -7 -1 1 1 3Sent 1024 bytes
+Sending 1024 bytes
+buffer_size: 0, seq_no: 2, buff_index: 9, len: 1024
+m_sendto: 9 -7 -1 0 2 9Sent 1024 bytes
+Sending 1024 bytes
+buffer_size: 1, seq_no: 3, buff_index: 4, len: 1024
+m_sendto: 4 0 -1 1 3 4Sent 1024 bytes
+Sending 1024 bytes
+buffer_size: 0, seq_no: 4, buff_index: 5, len: 1024
+m_sendto: 5 0 -1 0 4 5Sent 1024 bytes
+Sending 1024 bytes
+buffer_size: 4, seq_no: 5, buff_index: 0, len: 1024
+m_sendto: 0 4 -1 4 5 0Sent 1024 bytes
+Sending 1024 bytes
+buffer_size: 3, seq_no: 6, buff_index: 1, len: 1024
+m_sendto: 1 4 -1 3 6 1Sent 1024 bytes
+Sending 1024 bytes
+buffer_size: 2, seq_no: 7, buff_index: 6, len: 1024
+m_sendto: 6 4 -1 2 7 6Sent 1024 bytes
+Sending 1024 bytes
+buffer_size: 1, seq_no: 8, buff_index: 7, len: 1024
+m_sendto: 7 4 -1 1 8 7Sent 1024 bytes
+Sending 1024 bytes
+buffer_size: 0, seq_no: 9, buff_index: 8, len: 1024
+m_sendto: 8 4 -1 0 9 8Sent 1024 bytes
+Sending 1024 bytes
+buffer_size: 0, seq_no: 10, buff_index: 2, len: 1024
+m_sendto: 2 3 -1 0 10 2Sent 1024 bytes
+Sending 1024 bytes
+buffer_size: 2, seq_no: 11, buff_index: 3, len: 1024
+m_sendto: 3 0 -1 2 11 3Sent 1024 bytes
+Sending 1024 bytes
+buffer_size: 1, seq_no: 12, buff_index: 4, len: 1024
+m_sendto: 4 0 -1 1 12 4Sent 1024 bytes
+Sending 1024 bytes
+buffer_size: 0, seq_no: 13, buff_index: 9, len: 1024
+m_sendto: 9 0 -1 0 13 9Sent 1024 bytes
+Sending 1024 bytes
+buffer_size: 3, seq_no: 14, buff_index: 0, len: 1024
+m_sendto: 0 0 -1 3 14 0Sent 1024 bytes
+Sending 1024 bytes
+buffer_size: 2, seq_no: 15, buff_index: 1, len: 1024
+m_sendto: 1 0 -1 2 15 1Sent 1024 bytes
+Sending 1024 bytes
+buffer_size: 1, seq_no: 0, buff_index: 5, len: 1024
+m_sendto: 5 0 -1 1 0 5Sent 1024 bytes
+Sending 1024 bytes
+buffer_size: 0, seq_no: 1, buff_index: 6, len: 1024
+m_sendto: 6 0 -1 0 1 6Sent 1024 bytes
+Sending 1024 bytes
+buffer_size: 4, seq_no: 2, buff_index: 2, len: 1024
+m_sendto: 2 -7 -1 4 2 2Sent 1024 bytes
+Sending 1024 bytes
+buffer_size: 3, seq_no: 3, buff_index: 3, len: 1024
+m_sendto: 3 -7 -1 3 3 3Sent 1024 bytes
+Sending 1024 bytes
+buffer_size: 2, seq_no: 4, buff_index: 4, len: 1024
+m_sendto: 4 -7 -1 2 4 4Sent 1024 bytes
+Sending 1024 bytes
+buffer_size: 1, seq_no: 5, buff_index: 7, len: 1024
+m_sendto: 7 -7 -1 1 5 7Sent 1024 bytes
+Sending 1024 bytes
+buffer_size: 0, seq_no: 6, buff_index: 8, len: 1024
+m_sendto: 8 -7 -1 0 6 8Sent 1024 bytes
+Sending 1024 bytes
+buffer_size: 2, seq_no: 7, buff_index: 0, len: 1024
+m_sendto: 0 1 -1 2 7 0Sent 1024 bytes
+Sending 1024 bytes
+buffer_size: 1, seq_no: 8, buff_index: 1, len: 1024
+m_sendto: 1 1 -1 1 8 1Sent 1024 bytes
+Sending 1024 bytes
+buffer_size: 0, seq_no: 9, buff_index: 9, len: 1024
+m_sendto: 9 1 -1 0 9 9Sent 1024 bytes
+Sending 1024 bytes
+buffer_size: 4, seq_no: 10, buff_index: 2, len: 1024
+m_sendto: 2 2 -1 4 10 2Sent 1024 bytes
+Sending 1024 bytes
+buffer_size: 3, seq_no: 11, buff_index: 3, len: 1024
+m_sendto: 3 2 -1 3 11 3Sent 1024 bytes
+Sending 1024 bytes
+buffer_size: 2, seq_no: 12, buff_index: 4, len: 1024
+m_sendto: 4 2 -1 2 12 4Sent 1024 bytes
+Sending 1024 bytes
+buffer_size: 1, seq_no: 13, buff_index: 5, len: 1024
+m_sendto: 5 2 -1 1 13 5Sent 1024 bytes
+Sending 1024 bytes
+buffer_size: 0, seq_no: 14, buff_index: 6, len: 1024
+m_sendto: 6 2 -1 0 14 6Sent 1024 bytes
+Sending 1024 bytes
+buffer_size: 1, seq_no: 15, buff_index: 7, len: 1024
+m_sendto: 7 0 -1 1 15 7Sent 1024 bytes
+Sending 1024 bytes
+buffer_size: 0, seq_no: 0, buff_index: 8, len: 1024
+m_sendto: 8 0 -1 0 0 8Sent 1024 bytes
+Sending 1024 bytes
+^C
