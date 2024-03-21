@@ -41,30 +41,6 @@ int main(int argc, char *argv[]){
     serverAddr.sin_addr.s_addr = inet_addr(dest_ip);
     printf("Reading file\n");
     int recvlen;
-    // while ((recvlen = m_recvfrom(sockfd, buffer, 1024, 0, (struct sockaddr*)&serverAddr, &addr_size))<=0){
-    //     printf("Checking recv\n");
-    //     if (recvlen <= 0) {
-    //         sleep(1);
-    //         continue;
-    //     }
-    // }
-    // printf("Writing %d bytes\n", recvlen);
-    // if(write(fd, buffer, recvlen)<0){
-    //     perror("Error in writing to file\n");
-    //     return 1;
-    // }
-    // while ((recvlen = m_recvfrom(sockfd, buffer, 1024, 0, (struct sockaddr*)&serverAddr, &addr_size))<=0){
-    //     printf("Checking recv\n");
-    //     if (recvlen <= 0) {
-    //         sleep(1);
-    //         continue;
-    //     }
-    // }
-    // printf("Writing\n");
-    // if(write(fd, buffer, recvlen)<0){
-    //     perror("Error in writing to file\n");
-    //     return 1;
-    // }
 
     while(1){
         while((recvlen = m_recvfrom(sockfd, buffer, 1024, 0, (struct sockaddr*)&serverAddr, &addr_size))<=0){
@@ -74,8 +50,12 @@ int main(int argc, char *argv[]){
                 continue;
             }
         }
-        printf("Writing %d bytes\n", recvlen);
-        if(write(fd, buffer, recvlen)<0){
+        if(buffer[0]=='1'){
+            printf("End of file\n");
+            break;
+        }
+        printf("Writing %d bytes\n", recvlen-1);
+        if(write(fd, buffer+1, recvlen-1)<0){
             perror("Error in writing to file\n");
             return 1;
         }
@@ -83,10 +63,10 @@ int main(int argc, char *argv[]){
 
     close(fd);
 
-    if(m_close(sockfd)<0){
-        perror("Error in closing\n");
-        return 1;
-    }
+    // if(m_close(sockfd)<0){
+    //     perror("Error in closing\n");
+    //     return 1;
+    // }
 
     return 0;
 }

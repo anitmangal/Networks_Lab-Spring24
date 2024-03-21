@@ -41,8 +41,10 @@ int main(int argc, char *argv[]){
     inet_aton(dest_ip, &serverAddr.sin_addr);
     printf("Reading file\n");
     int readlen;
-    while((readlen=read(fd, buffer, 1024))>0){
-        printf("Sending %d bytes\n",readlen);
+    buffer[0]='0';
+    int seq=1;
+    while((readlen=read(fd, buffer+1, 1023))>0){
+        printf("Sending %d bytes\n",readlen+1);
         // for (int i = 0; i < readlen; i++) {
         //     printf("%c", buffer[i]);
         // }
@@ -53,7 +55,7 @@ int main(int argc, char *argv[]){
         //     return 1;
         // }
         while(1){
-            while((sendlen=m_sendto(sockfd, buffer, readlen, 0, (struct sockaddr*)&serverAddr, sizeof(serverAddr)))<0 && errno==ENOBUFS){
+            while((sendlen=m_sendto(sockfd, buffer, readlen+1, 0, (struct sockaddr*)&serverAddr, sizeof(serverAddr)))<0 && errno==ENOBUFS){
                 sleep(1);
             }
             if(sendlen>=0)
@@ -61,17 +63,31 @@ int main(int argc, char *argv[]){
             perror("Error in sending\n");
             return 1;
         }
-        printf("Sent %d bytes\n", sendlen);
+        printf("Sent %d bytes, seq %d\n", sendlen, seq);
+        seq=(seq+1)%16;
     }
-    printf("sent final bytes\n");
-    sleep(50);   // To ensure all messages are sent
+    buffer[0]='1';
+    int sendlen;
+    while(1){
+        while((sendlen=m_sendto(sockfd, buffer, 1, 0, (struct sockaddr*)&serverAddr, sizeof(serverAddr)))<0 && errno==ENOBUFS){
+            sleep(1);
+        }
+        if(sendlen>=0){
+            printf("Sending EOF\n");
+            break;
+        }
+        perror("Error in sending\n");
+        return 1;
+    }
+    sleep(10);   // To ensure all messages are sent
+    printf("File sent.\n");
 
     close(fd);
 
-    if(m_close(sockfd)<0){
-        perror("Error in closing\n");
-        return 1;
-    }
+    // if(m_close(sockfd)<0){
+    //     perror("Error in closing\n");
+    //     return 1;
+    // }
 
     return 0;
 }
