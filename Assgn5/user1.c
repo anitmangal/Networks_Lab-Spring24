@@ -43,17 +43,10 @@ int main(int argc, char *argv[]){
     int readlen;
     buffer[0]='0';
     int seq=1;
+    int numOfMessages=0;
     while((readlen=read(fd, buffer+1, 1023))>0){
         printf("Sending %d bytes\n",readlen+1);
-        // for (int i = 0; i < readlen; i++) {
-        //     printf("%c", buffer[i]);
-        // }
-        // printf("\n\n\n\n");
         int sendlen;
-        // if((sendlen=m_sendto(sockfd, buffer, readlen, 0, (struct sockaddr*)&serverAddr, sizeof(serverAddr)))<0){
-        //     perror("Error in sending\n");
-        //     return 1;
-        // }
         while(1){
             while((sendlen=m_sendto(sockfd, buffer, readlen+1, 0, (struct sockaddr*)&serverAddr, sizeof(serverAddr)))<0 && errno==ENOBUFS){
                 sleep(1);
@@ -65,6 +58,7 @@ int main(int argc, char *argv[]){
         }
         printf("Sent %d bytes, seq %d\n", sendlen, seq);
         seq=(seq+1)%16;
+        numOfMessages++;
     }
     buffer[0]='1';
     int sendlen;
@@ -73,13 +67,14 @@ int main(int argc, char *argv[]){
             sleep(1);
         }
         if(sendlen>=0){
-            printf("Sending EOF\n");
+            numOfMessages++;
+            printf("Sending EOF. No. of messages sent = %d\n", numOfMessages);
             break;
         }
         perror("Error in sending\n");
         return 1;
     }
-    sleep(50);   // To ensure all messages are sent
+    sleep(100);   // To ensure all messages are sent
     printf("File sent.\n");
 
     close(fd);

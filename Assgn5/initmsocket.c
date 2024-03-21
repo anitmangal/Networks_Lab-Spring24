@@ -6,6 +6,7 @@
 #include "msocket.h"
 #include <assert.h>
 
+int numOfTransmissions = 0;
 
 /*
 
@@ -55,23 +56,26 @@ void * R() {
                     // Check if the receive window has space now
                     if (SM[i].nospace && SM[i].rwnd.size > 0) {
                         SM[i].nospace = 0;
-                        int lastseq = ((SM[i].rwnd.start_seq+16)-1)%16;     // Last in-order sequence number
-                        struct sockaddr_in cliaddr;
-                        cliaddr.sin_family = AF_INET;
-                        inet_aton(SM[i].ip_address, &cliaddr.sin_addr);
-                        cliaddr.sin_port = htons(SM[i].port);
-
-                        char ack[8];
-                        ack[0] = '0';
-                        ack[1] = (lastseq>>3)%2 + '0';
-                        ack[2] = (lastseq>>2)%2 + '0';
-                        ack[3] = (lastseq>>1)%2 + '0';
-                        ack[4] = (lastseq)%2 + '0';
-                        ack[5] = (SM[i].rwnd.size>>2)%2 + '0';
-                        ack[6] = (SM[i].rwnd.size>>1)%2 + '0';
-                        ack[7] = (SM[i].rwnd.size)%2 + '0';
-                        sendto(SM[i].udp_socket_id, ack, 8, 0, (struct sockaddr *)&cliaddr, sizeof(cliaddr));
                     }
+
+                    // sending ack regardless of nospace, is there any problem w that????
+                    int lastseq = ((SM[i].rwnd.start_seq+16)-1)%16;     // Last in-order sequence number
+                    struct sockaddr_in cliaddr;
+                    cliaddr.sin_family = AF_INET;
+                    inet_aton(SM[i].ip_address, &cliaddr.sin_addr);
+                    cliaddr.sin_port = htons(SM[i].port);
+
+                    char ack[8];
+                    ack[0] = '0';
+                    ack[1] = (lastseq>>3)%2 + '0';
+                    ack[2] = (lastseq>>2)%2 + '0';
+                    ack[3] = (lastseq>>1)%2 + '0';
+                    ack[4] = (lastseq)%2 + '0';
+                    ack[5] = (SM[i].rwnd.size>>2)%2 + '0';
+                    ack[6] = (SM[i].rwnd.size>>1)%2 + '0';
+                    ack[7] = (SM[i].rwnd.size)%2 + '0';
+                    sendto(SM[i].udp_socket_id, ack, 8, 0, (struct sockaddr *)&cliaddr, sizeof(cliaddr));
+                    // }
                 }
             }
             V(sem_SM);
@@ -85,7 +89,7 @@ void * R() {
                     struct sockaddr_in cliaddr;
                     unsigned int len = sizeof(cliaddr);
                     int n = recvfrom(SM[i].udp_socket_id, buffer, 1040, 0, (struct sockaddr *)&cliaddr, &len);
-                    if (dropMessage(p)) if(buffer[0]=='1') continue;           // Drop message with probability p
+                    if (dropMessage(p)) continue;           // Drop message with probability p
                     if (n < 0) {
                         perror("recvfrom()");
                     }
@@ -209,6 +213,7 @@ void * S(){
                             memcpy(buffer+16, SM[i].send_buffer[SM[i].swnd.wndw[j]], len);
 
                             sendto(SM[i].udp_socket_id, buffer, 16+len, 0, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
+                            numOfTransmissions++;
                             SM[i].lastSendTime[j]=time(NULL);
                         }
                         j=(j+1)%16;
@@ -242,11 +247,13 @@ void * S(){
                             memcpy(buffer+16, SM[i].send_buffer[SM[i].swnd.wndw[j]], len);
 
                             sendto(SM[i].udp_socket_id, buffer, 16+len, 0, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
+                            numOfTransmissions++;
                             SM[i].lastSendTime[j]=time(NULL);
                         }
                         j=(j+1)%16;
                     }
                 }
+                printf("numOfTransmissions=%d\n", numOfTransmissions);
             }
         }
         V(sem_SM);
@@ -269,6 +276,7 @@ void * G() {
 }
 
 int main() {
+    numOfTransmissions = 0;
     signal(SIGINT, sigHandler); // Ctrl+C will release resources and exit
 
     srand(time(0));

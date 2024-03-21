@@ -66,10 +66,28 @@ II) Functions:
             - signal handler
         
         7) void *R():
-            - receiver thread function (???? pls anit write this thank you)
+            - receiver thread function, runs in a loop and does whats stated below
+            - waits on all sockets in use using select call, with timeout T
+            - if select call returns 0 (timeout)
+                - calls FD_SET for each socket in use
+                - if nospace flag was set and receiver window is not full, unset nospace flag
+                - send ack for last received in-order message
+            - if select call returns value > 0
+                - for each socket in use
+                    - if message received
+                        - if message is in-order, write to recv buffer and send ack
+                        - if message is out-of-order, write to recv buffer and send ack for last received in-order message
+                    - if ack received, update send window and lastSendTime for the corresponding message
+                    - duplicates are discarded in case of both message and ack
+                    - if recv window is full, set nospace flag
+                    - the receive window size is piggybacked with the ack message
 
         8) void *S():
-            - sender thread function (???? I NEED TO WRITE)
+            - sender thread function, runs in a loop, sleeps for T/2, and does whats stated below
+            - for the sockets in use, checks if timeout has occured for any message
+                - if yes, send all messages in its send window
+                - if no, check send window for messages not sent yet and send them
+            
 
         9) void *G():
             - garbage collector thread function (???? pls anit write this thank you)
@@ -78,4 +96,18 @@ II) Functions:
             - responsible for creating and initialising shared memory table, semaphores, etc.
             - has a while loop that aids m_socket and m_bind functions.
 
-III) Table with findings (???? yet to do)
+III) Table with findings (no. of messages=113)
+
+p               | No. of Transmissions  | Avg No. of Transmissions
+---------------------------------------------------------------
+0.05            | 124                   | 1.097345
+0.10            | 144                   | 1.274336
+0.15            | 134                   | 1.185841
+0.20            | 155                   | 1.371681
+0.25            | 202                   | 1.787611
+0.30            | 193                   | 1.707965
+0.35            | 226                   | 2.000000
+0.40            | 235                   | 2.079646
+0.45            | 285                   | 2.522124
+0.50            | 327                   | 2.893805
+
