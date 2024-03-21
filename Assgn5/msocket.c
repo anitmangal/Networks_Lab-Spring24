@@ -59,6 +59,7 @@ int is_free_entry_available() {
     return -1;
 }
 
+// Function to allocate a new socket
 int m_socket(int domain, int type, int protocol) {
     get_shared_resources();
     if (type != SOCK_MTP) {
@@ -70,6 +71,7 @@ int m_socket(int domain, int type, int protocol) {
     P(sem_sock_info);
 
     if ((i=is_free_entry_available())==-1) {
+        // No free entry available
         errno = ENOBUFS;
         sock_info->err_no=errno;
 
@@ -78,11 +80,13 @@ int m_socket(int domain, int type, int protocol) {
         sock_info->err_no=0;
         sock_info->ip_address[0]='\0';
         sock_info->port=0;
+        V(sem_sock_info);
         return -1;
     }
 
     V(sem_sock_info);
     V(sem1);
+    // Free entry available
 
     P(sem2);
     P(sem_sock_info);
@@ -97,6 +101,7 @@ int m_socket(int domain, int type, int protocol) {
     }
     V(sem_sock_info);
 
+    // Allocating the socket by initializing the SM entry
     P(sem_SM);
     SM[i].is_free=0;
     SM[i].process_id=getpid();
@@ -112,7 +117,6 @@ int m_socket(int domain, int type, int protocol) {
     SM[i].send_buffer_sz=10;
     for (int j = 0; j < 5; j++) SM[i].recv_buffer_valid[j] = 0;
     SM[i].recv_buffer_pointer=0;
-    SM[i].recv_buffer_pointer=0;
     SM[i].nospace=0;
     V(sem_SM);
     
@@ -124,9 +128,10 @@ int m_socket(int domain, int type, int protocol) {
     sock_info->port=0;
     V(sem_sock_info);
 
-    return i;
+    return i;   // Return the socket id
 }
 
+// Function to bind a socket to src and dest IP and port
 int m_bind(char src_ip[], uint16_t src_port, char dest_ip[], uint16_t dest_port) {
     get_shared_resources();
     int sockfd=-1;
@@ -137,7 +142,6 @@ int m_bind(char src_ip[], uint16_t src_port, char dest_ip[], uint16_t dest_port)
             break;
         }
     }
-    // V(sem_SM);
 
     // should never execute... just for safety
     P(sem_sock_info);
@@ -147,9 +151,12 @@ int m_bind(char src_ip[], uint16_t src_port, char dest_ip[], uint16_t dest_port)
         sock_info->err_no=0;
         sock_info->ip_address[0]='\0';
         sock_info->port=0;
+        V(sem_SM);
+        V(sem_sock_info);
         return -1;
     }
 
+    // Setting the socket info
     sock_info->sock_id=SM[sockfd].udp_socket_id;
     strcpy(sock_info->ip_address, src_ip);
     sock_info->port=src_port;
@@ -169,11 +176,10 @@ int m_bind(char src_ip[], uint16_t src_port, char dest_ip[], uint16_t dest_port)
     }
     V(sem_sock_info);
 
-    // P(sem_SM);
+    // Setting the destination IP and port
     strcpy(SM[sockfd].ip_address, dest_ip);
     SM[sockfd].port=dest_port;
 
-    printf("Binding successful: %d %d %d %d %16s %d %d\n", SM[sockfd].is_free, SM[sockfd].process_id, getpid(), SM[sockfd].udp_socket_id, SM[sockfd].ip_address, SM[sockfd].port, SM[sockfd].nospace);
     V(sem_SM);
 
     // resetting sock_info
@@ -187,17 +193,18 @@ int m_bind(char src_ip[], uint16_t src_port, char dest_ip[], uint16_t dest_port)
     return 0;
 }
 
+// Function to send a message
 ssize_t m_sendto(int m_sockfd, const void *buf, size_t len, int flags,
                  const struct sockaddr *dest_addr, socklen_t addrlen) {
     get_shared_resources();
     P(sem_SM);
+
     char * dest_ip;
     uint16_t dest_port;
     dest_ip = inet_ntoa(((struct sockaddr_in *)dest_addr)->sin_addr);
     dest_port=ntohs(((struct sockaddr_in *)dest_addr)->sin_port);
 
-    // printf("m_sendto: %16s %d %16s %d\n", SM[m_sockfd].ip_address, SM[m_sockfd].port, dest_ip, dest_port);
-    if(strcmp(SM[m_sockfd].ip_address, dest_ip)!=0 || SM[m_sockfd].port!=dest_port){
+    if(strcmp(SM[m_sockfd].ip_address, dest_ip)!=0 || SM[m_sockfd].port!=dest_port){    // destination IP and port should match
         errno = ENOTCONN;
         V(sem_SM);
         return -1;
@@ -210,17 +217,17 @@ ssize_t m_sendto(int m_sockfd, const void *buf, size_t len, int flags,
     }
 
     int seq_no=SM[m_sockfd].swnd.start_seq;
-    while(SM[m_sockfd].swnd.wndw[seq_no]!=-1){      //???? i shoudldnt need to add an extra check to limit to 5 iterations, but can that be an issue?
+    while(SM[m_sockfd].swnd.wndw[seq_no]!=-1){      // finding the next sequence number to send
         seq_no=(seq_no+1)%16;
     }
 
+    // Finding the buffer index to store the message
     int buff_index=0;
     int f=1;
     for(buff_index=0;buff_index<10;buff_index++){
         f=1;
         for(int i=0;i<16;i++){
             if(SM[m_sockfd].swnd.wndw[i]==buff_index){
-                // printf("%d %d %d\n", i, SM[m_sockfd].swnd.wndw[i], buff_index);
                 f=0;
                 break;
             }
@@ -237,61 +244,42 @@ ssize_t m_sendto(int m_sockfd, const void *buf, size_t len, int flags,
         return -1;
     }
 
-    SM[m_sockfd].swnd.wndw[seq_no]=buff_index;
-    // SM[m_sockfd].swnd.size--;
-    // strncpy(SM[m_sockfd].send_buffer[buff_index], buf, len);
+    SM[m_sockfd].swnd.wndw[seq_no]=buff_index;              // Map the sequence number to buffer index
     memcpy(SM[m_sockfd].send_buffer[buff_index], buf, len);
     SM[m_sockfd].lastSendTime[seq_no]=-1;
     SM[m_sockfd].send_buffer_sz--;
     SM[m_sockfd].lengthOfMessageSendBuffer[buff_index]=len;
-    // printf("buffer_size: %d, seq_no: %d, buff_index: %d, len: %d\n", SM[m_sockfd].send_buffer_sz, seq_no, buff_index, len);
-    // printf("m_sendto: %d %d %1024s %ld %d %d %d", SM[m_sockfd].swnd.wndw[seq_no], SM[m_sockfd].swnd.size, SM[m_sockfd].send_buffer[buff_index], SM[m_sockfd].lastSendTime[seq_no], SM[m_sockfd].send_buffer_sz, seq_no, buff_index);
-    // printf("m_sendto: %d %d %ld %d %d %d", SM[m_sockfd].swnd.wndw[seq_no], SM[m_sockfd].swnd.size, SM[m_sockfd].lastSendTime[seq_no], SM[m_sockfd].send_buffer_sz, seq_no, buff_index);
 
     V(sem_SM);
     return len;
 }
 
+// Function to receive a message
 ssize_t m_recvfrom(int sockfd, void *buf, size_t len, int flags,
                    struct sockaddr *src_addr, socklen_t *addrlen) {
     get_shared_resources();
     P(sem_SM);
-    printf("m_recvfrom: starting\n");
+
     if (sockfd < 0 || sockfd >= N || SM[sockfd].is_free) {
         errno = EBADF;
         V(sem_SM);
         return -1;
     }
-    // printf("m_recvfrom: 1\n");
     struct SM_entry * sm = SM + sockfd;
-    int ptr=sm->recv_buffer_pointer;
     if (sm->recv_buffer_valid[sm->recv_buffer_pointer]) {
-        // printf("m_recvfrom: 2\n");
-        // printf("m_recvfrom: %1024s\n", sm->recv_buffer[sm->recv_buffer_pointer]);
         sm->recv_buffer_valid[sm->recv_buffer_pointer] = 0;
         sm->rwnd.size++;
         int seq = -1;
         for (int i = 0; i < 16; i++) if (sm->rwnd.wndw[i] == sm->recv_buffer_pointer) seq = i;
-        printf("m_recvfrom: seq %d\n", seq);
-        // assert(seq != -1);
         sm->rwnd.wndw[seq] = -1;
         sm->rwnd.wndw[(seq+5)%16] = sm->recv_buffer_pointer;
-        // printf("m_recvfrom: 4\n");
-        // strncpy(buf, sm->recv_buffer[sm->recv_buffer_pointer], (len < 1024) ? len : 1024);
         int length = sm->lengthOfMessageReceiveBuffer[sm->recv_buffer_pointer];
         memcpy(buf, sm->recv_buffer[sm->recv_buffer_pointer], (len < length) ? len : length);
-        // printf("m_recvfrom: 5\n");
-        printf("m_recvfrom: b4 recvptr %d\n", sm->recv_buffer_pointer);
         sm->recv_buffer_pointer = (sm->recv_buffer_pointer + 1) % 5;
-        printf("m_recvfrom: after recvptr %d\n", sm->recv_buffer_pointer);
         V(sem_SM);
-        // printf("m_recvfrom: 6\n");
-        printf("m_recvfrom: last recvptr %d\n", sm->recv_buffer_pointer);
-        printf("m_recvfrom: length %d\n", length);
-        // return (len < 1024) ? len : 1024;
         return (len < length) ? len : length;
     }
-    printf("m_recvfrom: No message\n");
+    // No message to read
     errno = ENOMSG;
     V(sem_SM);
     return -1;

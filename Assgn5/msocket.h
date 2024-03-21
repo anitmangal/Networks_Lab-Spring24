@@ -19,7 +19,7 @@
 // Custom socket type for MTP
 #define SOCK_MTP 3
 
-// defining T
+// defining T, p and N for the sliding window protocol
 #define T 5
 #define p 0.5
 #define N 25    

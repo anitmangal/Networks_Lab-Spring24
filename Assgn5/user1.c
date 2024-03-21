@@ -79,7 +79,7 @@ int main(int argc, char *argv[]){
         perror("Error in sending\n");
         return 1;
     }
-    sleep(10);   // To ensure all messages are sent
+    sleep(50);   // To ensure all messages are sent
     printf("File sent.\n");
 
     close(fd);
