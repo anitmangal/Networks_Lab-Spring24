@@ -1,6 +1,7 @@
 #include "msocket.h"
 #include <assert.h>
 
+
 // Shared memory structure
 struct SM_entry * SM;
 SOCK_INFO * sock_info;
@@ -111,6 +112,7 @@ int m_socket(int domain, int type, int protocol) {
     SM[i].send_buffer_sz=10;
     for (int j = 0; j < 5; j++) SM[i].recv_buffer_valid[j] = 0;
     SM[i].recv_buffer_pointer=0;
+    SM[i].recv_buffer_pointer=0;
     SM[i].nospace=0;
     V(sem_SM);
     
@@ -135,7 +137,7 @@ int m_bind(char src_ip[], uint16_t src_port, char dest_ip[], uint16_t dest_port)
             break;
         }
     }
-    V(sem_SM);
+    // V(sem_SM);
 
     // should never execute... just for safety
     P(sem_sock_info);
@@ -167,7 +169,7 @@ int m_bind(char src_ip[], uint16_t src_port, char dest_ip[], uint16_t dest_port)
     }
     V(sem_sock_info);
 
-    P(sem_SM);
+    // P(sem_SM);
     strcpy(SM[sockfd].ip_address, dest_ip);
     SM[sockfd].port=dest_port;
 
@@ -242,9 +244,9 @@ ssize_t m_sendto(int m_sockfd, const void *buf, size_t len, int flags,
     SM[m_sockfd].lastSendTime[seq_no]=-1;
     SM[m_sockfd].send_buffer_sz--;
     SM[m_sockfd].lengthOfMessageSendBuffer[buff_index]=len;
-    printf("buffer_size: %d, seq_no: %d, buff_index: %d, len: %d\n", SM[m_sockfd].send_buffer_sz, seq_no, buff_index, len);
+    // printf("buffer_size: %d, seq_no: %d, buff_index: %d, len: %d\n", SM[m_sockfd].send_buffer_sz, seq_no, buff_index, len);
     // printf("m_sendto: %d %d %1024s %ld %d %d %d", SM[m_sockfd].swnd.wndw[seq_no], SM[m_sockfd].swnd.size, SM[m_sockfd].send_buffer[buff_index], SM[m_sockfd].lastSendTime[seq_no], SM[m_sockfd].send_buffer_sz, seq_no, buff_index);
-    printf("m_sendto: %d %d %ld %d %d %d", SM[m_sockfd].swnd.wndw[seq_no], SM[m_sockfd].swnd.size, SM[m_sockfd].lastSendTime[seq_no], SM[m_sockfd].send_buffer_sz, seq_no, buff_index);
+    // printf("m_sendto: %d %d %ld %d %d %d", SM[m_sockfd].swnd.wndw[seq_no], SM[m_sockfd].swnd.size, SM[m_sockfd].lastSendTime[seq_no], SM[m_sockfd].send_buffer_sz, seq_no, buff_index);
 
     V(sem_SM);
     return len;
@@ -260,11 +262,12 @@ ssize_t m_recvfrom(int sockfd, void *buf, size_t len, int flags,
         V(sem_SM);
         return -1;
     }
-    printf("m_recvfrom: 1\n");
+    // printf("m_recvfrom: 1\n");
     struct SM_entry * sm = SM + sockfd;
+    int ptr=sm->recv_buffer_pointer;
     if (sm->recv_buffer_valid[sm->recv_buffer_pointer]) {
-        printf("m_recvfrom: 2\n");
-        printf("m_recvfrom: %1024s\n", sm->recv_buffer[sm->recv_buffer_pointer]);
+        // printf("m_recvfrom: 2\n");
+        // printf("m_recvfrom: %1024s\n", sm->recv_buffer[sm->recv_buffer_pointer]);
         sm->recv_buffer_valid[sm->recv_buffer_pointer] = 0;
         sm->rwnd.size++;
         int seq = -1;
@@ -273,19 +276,22 @@ ssize_t m_recvfrom(int sockfd, void *buf, size_t len, int flags,
         // assert(seq != -1);
         sm->rwnd.wndw[seq] = -1;
         sm->rwnd.wndw[(seq+5)%16] = sm->recv_buffer_pointer;
-        printf("m_recvfrom: 4\n");
+        // printf("m_recvfrom: 4\n");
         // strncpy(buf, sm->recv_buffer[sm->recv_buffer_pointer], (len < 1024) ? len : 1024);
-        memcpy(buf, sm->recv_buffer[sm->recv_buffer_pointer], (len < 1024) ? len : 1024);
-        printf("m_recvfrom: 5\n");
         int length = sm->lengthOfMessageReceiveBuffer[sm->recv_buffer_pointer];
+        memcpy(buf, sm->recv_buffer[sm->recv_buffer_pointer], (len < length) ? len : length);
+        // printf("m_recvfrom: 5\n");
+        printf("m_recvfrom: b4 recvptr %d\n", sm->recv_buffer_pointer);
         sm->recv_buffer_pointer = (sm->recv_buffer_pointer + 1) % 5;
+        printf("m_recvfrom: after recvptr %d\n", sm->recv_buffer_pointer);
         V(sem_SM);
-        printf("m_recvfrom: 6\n");
+        // printf("m_recvfrom: 6\n");
+        printf("m_recvfrom: last recvptr %d\n", sm->recv_buffer_pointer);
         printf("m_recvfrom: length %d\n", length);
         // return (len < 1024) ? len : 1024;
         return (len < length) ? len : length;
     }
-    printf("m_recvfrom: 3\n");
+    printf("m_recvfrom: No message\n");
     errno = ENOMSG;
     V(sem_SM);
     return -1;
