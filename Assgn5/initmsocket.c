@@ -89,10 +89,10 @@ void * R() {
                     if(i==0)
                     printf("1)R: recv_buffer_pointer %d\n", SM[i].recv_buffer_pointer);
                     int n = recvfrom(SM[i].udp_socket_id, buffer, 1040, 0, (struct sockaddr *)&cliaddr, &len);
-                    if (dropMessage(p)) {
-                        printf("R: Dropped %c%c%c%c%c\n", buffer[0], buffer[1], buffer[2], buffer[3], buffer[4]);
-                        continue;
-                    }
+                    // if (dropMessage(p)) {
+                    //     printf("R: Dropped %c%c%c%c%c\n", buffer[0], buffer[1], buffer[2], buffer[3], buffer[4]);
+                    //     continue;
+                    // }
                     // printf("R: n=%d\n", n);
                     if (n < 0) {
                         perror("recvfrom()");
@@ -112,9 +112,9 @@ void * R() {
                                 }
                                 // printf("sent buffer size: %d\n", SM[i].send_buffer_sz);
                                 SM[i].swnd.start_seq = (seq+1)%16;
+                                printf("R: Received ACK %d\n", seq);
                             }
                             SM[i].swnd.size = rwnd;
-                            printf("R: Received ACK %d\n", seq);
                         }
                         else {
                             // DATA
@@ -197,16 +197,18 @@ void * S(){
                 serv_addr.sin_port = htons(SM[i].port);
                 inet_aton(SM[i].ip_address, &serv_addr.sin_addr);
                 int timeout=0;
-                for(int j=0;j<16;j++){
+                int j=SM[i].swnd.start_seq;
+                while(j!=(SM[i].swnd.start_seq+SM[i].swnd.size)%16){
                     if(SM[i].lastSendTime[j]!=-1 && time(NULL)-SM[i].lastSendTime[j]>T){
                         timeout=1;
                         break;
                     }
+                    j=(j+1)%16;
                 }
                 if(timeout){
                     int j=SM[i].swnd.start_seq;
                     int start=SM[i].swnd.start_seq;
-                    while(j==start || j==(start+1)%16 || j==(start+2)%16 || j==(start+3)%16 || j==(start+4)%16){
+                    while(j!=(start+SM[i].swnd.size)%16){
                         if(SM[i].swnd.wndw[j]!=-1){
                             char buffer[1040];
                             buffer[0]='1';
@@ -241,10 +243,10 @@ void * S(){
                             // printf("S: Resending %d\n", j);
                             int sendb = sendto(SM[i].udp_socket_id, buffer, 16+len, 0, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
                             if(SM[i].lastSendTime[j]==-1){
-                                printf("S: Resent %d at %d\n", sendb, j);
+                                printf("S: Sent %d at %d\n", sendb, j);
                             }
                             else{
-                                printf("S: Sent %d at %d\n", sendb, j);
+                                printf("S: Resent %d at %d\n", sendb, j);
                             }
                             SM[i].lastSendTime[j]=time(NULL);
                         }
@@ -254,7 +256,7 @@ void * S(){
                 else{
                     int j=SM[i].swnd.start_seq;
                     int start=SM[i].swnd.start_seq;
-                    while(j==start || j==(start+1)%16 || j==(start+2)%16 || j==(start+3)%16 || j==(start+4)%16){
+                    while(j!=(start+SM[i].swnd.size)%16){
                         if(SM[i].swnd.wndw[j]!=-1 && SM[i].lastSendTime[j]==-1){
                             char buffer[1040];
                             buffer[0]='1';
