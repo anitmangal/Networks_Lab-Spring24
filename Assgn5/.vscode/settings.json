@@ -11,6 +11,7 @@
         "socket.h": "c",
         "pthread.h": "c",
         "stdio.h": "c",
-        "in.h": "c"
+        "in.h": "c",
+        "fcntl.h": "c"
     }
 }

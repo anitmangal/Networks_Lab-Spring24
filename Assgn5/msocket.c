@@ -172,6 +172,8 @@ int m_bind(char src_ip[], uint16_t src_port, char dest_ip[], uint16_t dest_port)
         sock_info->err_no=0;
         sock_info->ip_address[0]='\0';
         sock_info->port=0;
+        V(sem_sock_info);
+        V(sem_SM);
         return -1;
     }
     V(sem_sock_info);

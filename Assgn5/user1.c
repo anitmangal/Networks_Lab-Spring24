@@ -7,8 +7,8 @@
 #include <sys/socket.h>
 
 int main(int argc, char *argv[]){
-    if(argc!=3){
-        printf("Usage: %s <src_port> <dest_port>\n", argv[0]);
+    if(argc!=5){
+        printf("Usage: %s <src_IP> <src_port> <dest_IP> <dest_port>\n", argv[0]);
         return 1;
     }
     int sockfd;
@@ -20,17 +20,19 @@ int main(int argc, char *argv[]){
         return 1;
     }
     
-    char src_ip[16]="127.0.0.1";
-    char dest_ip[16]="127.0.0.1";
-    uint16_t src_port=atoi(argv[1]);
-    uint16_t dest_port=atoi(argv[2]);
+    char src_ip[16];
+    strcpy(src_ip, argv[1]);
+    char dest_ip[16];
+    strcpy(dest_ip, argv[3]);
+    uint16_t src_port=atoi(argv[2]);
+    uint16_t dest_port=atoi(argv[4]);
 
     if(m_bind(src_ip, src_port, dest_ip, dest_port)<0){
         perror("Error in binding\n");
         return 1;
     }
 
-    int fd=open("Sample200.txt", O_RDONLY);
+    int fd=open("input.jpg", O_RDONLY);
     if(fd<0){
         perror("Error in opening file\n");
         return 1;
@@ -74,7 +76,7 @@ int main(int argc, char *argv[]){
         perror("Error in sending\n");
         return 1;
     }
-    sleep(150);   // To ensure all messages are sent
+    sleep((unsigned int)(300*p));   // To ensure all messages are sent
     printf("File sent.\n");
 
     close(fd);

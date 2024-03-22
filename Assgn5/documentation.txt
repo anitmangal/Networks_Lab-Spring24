@@ -90,7 +90,8 @@ II) Functions:
             
 
         9) void *G():
-            - garbage collector thread function (???? pls anit write this thank you)
+            - garbage collector thread function, runs in a loop, sleeps for T seconds, and does what is stated below
+            - for any non-free entry, it checks if process is not running and in that case, marks that entry free.
 
         10) main function of initsocket.c:
             - responsible for creating and initialising shared memory table, semaphores, etc.

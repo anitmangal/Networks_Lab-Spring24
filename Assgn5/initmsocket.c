@@ -56,27 +56,25 @@ void * R() {
                     // Check if the receive window has space now
                     if (SM[i].nospace && SM[i].rwnd.size > 0) {
                         SM[i].nospace = 0;
-                    // }
-
-                        // sending ack regardless of nospace, is there any problem w that????
-                        int lastseq = ((SM[i].rwnd.start_seq+16)-1)%16;     // Last in-order sequence number
-                        struct sockaddr_in cliaddr;
-                        cliaddr.sin_family = AF_INET;
-                        inet_aton(SM[i].ip_address, &cliaddr.sin_addr);
-                        cliaddr.sin_port = htons(SM[i].port);
-
-                        char ack[8];
-                        ack[0] = '0';
-                        ack[1] = (lastseq>>3)%2 + '0';
-                        ack[2] = (lastseq>>2)%2 + '0';
-                        ack[3] = (lastseq>>1)%2 + '0';
-                        ack[4] = (lastseq)%2 + '0';
-                        ack[5] = (SM[i].rwnd.size>>2)%2 + '0';
-                        ack[6] = (SM[i].rwnd.size>>1)%2 + '0';
-                        ack[7] = (SM[i].rwnd.size)%2 + '0';
-                        sendto(SM[i].udp_socket_id, ack, 8, 0, (struct sockaddr *)&cliaddr, sizeof(cliaddr));
-                        printf("Sent nospace ACK %d\n", lastseq);
                     }
+
+                    // sending ack regardless of nospace
+                    int lastseq = ((SM[i].rwnd.start_seq+16)-1)%16;     // Last in-order sequence number
+                    struct sockaddr_in cliaddr;
+                    cliaddr.sin_family = AF_INET;
+                    inet_aton(SM[i].ip_address, &cliaddr.sin_addr);
+                    cliaddr.sin_port = htons(SM[i].port);
+
+                    char ack[8];
+                    ack[0] = '0';
+                    ack[1] = (lastseq>>3)%2 + '0';
+                    ack[2] = (lastseq>>2)%2 + '0';
+                    ack[3] = (lastseq>>1)%2 + '0';
+                    ack[4] = (lastseq)%2 + '0';
+                    ack[5] = (SM[i].rwnd.size>>2)%2 + '0';
+                    ack[6] = (SM[i].rwnd.size>>1)%2 + '0';
+                    ack[7] = (SM[i].rwnd.size)%2 + '0';
+                    sendto(SM[i].udp_socket_id, ack, 8, 0, (struct sockaddr *)&cliaddr, sizeof(cliaddr));
                 }
             }
             V(sem_SM);
@@ -108,7 +106,6 @@ void * R() {
                                     j = (j+1)%16;
                                 }
                                 SM[i].swnd.start_seq = (seq+1)%16;
-                                printf("Received ACK %d\n", seq);
                             }
                             SM[i].swnd.size = rwnd;
                         }
@@ -143,10 +140,6 @@ void * R() {
                             // Nospace
                             if (SM[i].rwnd.size == 0) SM[i].nospace = 1;
 
-                            if (SM[i].rwnd.size < 0) {
-                                printf("R: Error. Negative rwnd size\n");
-                            }
-
                             // Send ACK
                             seq = (SM[i].rwnd.start_seq+16-1)%16;           // Last in-order message received
                             char ack[8];
@@ -159,7 +152,6 @@ void * R() {
                             ack[6] = (SM[i].rwnd.size>>1)%2 + '0';
                             ack[7] = (SM[i].rwnd.size)%2 + '0';
                             sendto(SM[i].udp_socket_id, ack, 8, 0, (struct sockaddr *)&cliaddr, sizeof(cliaddr));
-                            printf("Sent ACK %d\n", seq);
                         }
                     }
                 }
@@ -256,7 +248,6 @@ void * S(){
                         j=(j+1)%16;
                     }
                 }
-                printf("numOfTransmissions=%d\n", numOfTransmissions);
             }
         }
         V(sem_SM);
@@ -305,8 +296,6 @@ int main() {
     sem2=semget(key_sem2, 1, 0666|IPC_CREAT);
     sem_SM=semget(key_sem_SM, 1, 0666|IPC_CREAT);
     sem_sock_info=semget(key_sem_sock_info, 1, 0666|IPC_CREAT);
-
-    printf("%d %d %d %d %d %d\n", shmid_sock_info, shmid_SM, sem1, sem2, sem_SM, sem_sock_info);
 
     // attach shared memory
     sock_info=(SOCK_INFO *)shmat(shmid_sock_info, 0, 0);
