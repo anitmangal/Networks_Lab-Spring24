@@ -74,15 +74,15 @@ int main(int argc, char *argv[]){
         perror("Error in sending\n");
         return 1;
     }
-    sleep(100);   // To ensure all messages are sent
+    sleep(150);   // To ensure all messages are sent
     printf("File sent.\n");
 
     close(fd);
 
-    // if(m_close(sockfd)<0){
-    //     perror("Error in closing\n");
-    //     return 1;
-    // }
+    if(m_close(sockfd)<0){
+        perror("Error in closing\n");
+        return 1;
+    }
 
     return 0;
 }

@@ -21,8 +21,8 @@
 
 // defining T, p and N for the sliding window protocol
 #define T 5
-#define p 0.05
-#define N 25    
+#define p 0.1
+#define N 25
                    
 #define P(s) semop(s, &pop, 1)  /* pop is the structure we pass for doing
 				   the P(s) operation */

@@ -56,26 +56,27 @@ void * R() {
                     // Check if the receive window has space now
                     if (SM[i].nospace && SM[i].rwnd.size > 0) {
                         SM[i].nospace = 0;
-                    }
-
-                    // sending ack regardless of nospace, is there any problem w that????
-                    int lastseq = ((SM[i].rwnd.start_seq+16)-1)%16;     // Last in-order sequence number
-                    struct sockaddr_in cliaddr;
-                    cliaddr.sin_family = AF_INET;
-                    inet_aton(SM[i].ip_address, &cliaddr.sin_addr);
-                    cliaddr.sin_port = htons(SM[i].port);
-
-                    char ack[8];
-                    ack[0] = '0';
-                    ack[1] = (lastseq>>3)%2 + '0';
-                    ack[2] = (lastseq>>2)%2 + '0';
-                    ack[3] = (lastseq>>1)%2 + '0';
-                    ack[4] = (lastseq)%2 + '0';
-                    ack[5] = (SM[i].rwnd.size>>2)%2 + '0';
-                    ack[6] = (SM[i].rwnd.size>>1)%2 + '0';
-                    ack[7] = (SM[i].rwnd.size)%2 + '0';
-                    sendto(SM[i].udp_socket_id, ack, 8, 0, (struct sockaddr *)&cliaddr, sizeof(cliaddr));
                     // }
+
+                        // sending ack regardless of nospace, is there any problem w that????
+                        int lastseq = ((SM[i].rwnd.start_seq+16)-1)%16;     // Last in-order sequence number
+                        struct sockaddr_in cliaddr;
+                        cliaddr.sin_family = AF_INET;
+                        inet_aton(SM[i].ip_address, &cliaddr.sin_addr);
+                        cliaddr.sin_port = htons(SM[i].port);
+
+                        char ack[8];
+                        ack[0] = '0';
+                        ack[1] = (lastseq>>3)%2 + '0';
+                        ack[2] = (lastseq>>2)%2 + '0';
+                        ack[3] = (lastseq>>1)%2 + '0';
+                        ack[4] = (lastseq)%2 + '0';
+                        ack[5] = (SM[i].rwnd.size>>2)%2 + '0';
+                        ack[6] = (SM[i].rwnd.size>>1)%2 + '0';
+                        ack[7] = (SM[i].rwnd.size)%2 + '0';
+                        sendto(SM[i].udp_socket_id, ack, 8, 0, (struct sockaddr *)&cliaddr, sizeof(cliaddr));
+                        printf("Sent nospace ACK %d\n", lastseq);
+                    }
                 }
             }
             V(sem_SM);
@@ -107,6 +108,7 @@ void * R() {
                                     j = (j+1)%16;
                                 }
                                 SM[i].swnd.start_seq = (seq+1)%16;
+                                printf("Received ACK %d\n", seq);
                             }
                             SM[i].swnd.size = rwnd;
                         }
@@ -157,6 +159,7 @@ void * R() {
                             ack[6] = (SM[i].rwnd.size>>1)%2 + '0';
                             ack[7] = (SM[i].rwnd.size)%2 + '0';
                             sendto(SM[i].udp_socket_id, ack, 8, 0, (struct sockaddr *)&cliaddr, sizeof(cliaddr));
+                            printf("Sent ACK %d\n", seq);
                         }
                     }
                 }

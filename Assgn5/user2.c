@@ -62,6 +62,7 @@ int main(int argc, char *argv[]){
     }
 
     close(fd);
+    sleep(10);      // to make sure final ack is received by sender
 
     // if(m_close(sockfd)<0){
     //     perror("Error in closing\n");
