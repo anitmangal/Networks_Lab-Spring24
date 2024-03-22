@@ -32,7 +32,7 @@ int main(int argc, char *argv[]){
         return 1;
     }
 
-    int fd=open("input.jpg", O_RDONLY);
+    int fd=open("input.txt", O_RDONLY);
     if(fd<0){
         perror("Error in opening file\n");
         return 1;

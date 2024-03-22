@@ -31,7 +31,7 @@ int main(int argc, char *argv[]){
     }
 
     char filename[100];
-    sprintf(filename, "new_%d.jpg", src_port);
+    sprintf(filename, "new_%d.txt", src_port);
     int fd=open(filename, O_WRONLY | O_CREAT | O_TRUNC, 0666);
     if(fd<0){
         perror("Error in opening/creating file\n");
