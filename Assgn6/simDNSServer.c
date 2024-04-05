@@ -14,6 +14,7 @@
 #include <asm-generic/socket.h>
 #include <sys/ioctl.h>
 #include <net/if.h>
+#include <time.h>
 
 #define BUFFSIZE 1518
 #define DROPRATE 0.1
