@@ -14,10 +14,14 @@
 #include <asm-generic/socket.h>
 #include <sys/ioctl.h>
 #include <net/if.h>
+#include <linux/if.h>
+#include <linux/if_ether.h>
+#include <linux/if_packet.h>
 #include <time.h>
 
 #define BUFFSIZE 1518
-#define DROPRATE 0.1
+#define DROPRATE 0
+#define interface_name "eno1"
 int ipID = 0;
 
 unsigned short checksum(unsigned short* buff, int _16bitword) {
@@ -49,14 +53,42 @@ int main(int argc, char *argv[]) {
         perror("socket");
         exit(1);
     }
+    printf("Socket created\n");
 
-    // Bind raw socket to local IP Address
-    char * interface = "lo";
-    if (setsockopt(sockfd, SOL_SOCKET, SO_BINDTODEVICE, interface, strlen(interface)) < 0) {
-        perror("SO_BINDTODEVICE");
+
+    struct ifreq ifr;
+    memset(&ifr, 0, sizeof(ifr));
+    strcpy((char*)ifr.ifr_name, interface_name);
+    if (ioctl(sockfd, SIOCGIFINDEX, &ifr) < 0) {
+        perror("ioctl1");
         exit(1);
     }
+    printf("Interface index: %d\n", ifr.ifr_ifindex);
 
+    // Bind raw socket to local IP Address
+    struct sockaddr_ll sll;
+    memset(&sll, 0, sizeof(sll));
+    sll.sll_family = AF_PACKET;
+    sll.sll_protocol = htons(ETH_P_ALL);
+    sll.sll_ifindex = ifr.ifr_ifindex;
+    if (bind(sockfd, (struct sockaddr *)&sll, sizeof(sll)) < 0) {
+        perror("bind");
+        exit(1);
+    }
+    printf("Socket bound\n");
+
+    if (ioctl(sockfd, SIOCGIFHWADDR, &ifr) < 0) {
+        perror("ioctl2");
+        exit(1);
+    }
+    printf("MAC address: ");
+
+    unsigned char srcmac[6];
+    memcpy(srcmac, (unsigned char*)ifr.ifr_hwaddr.sa_data, ETH_ALEN);
+    for (int i = 0; i < ETH_ALEN; i++) {
+        printf("%02x:", srcmac[i]);
+    }
+    printf("\n");
     // get mac from argv[1]
     unsigned char mac[6];
     sscanf(argv[1], "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx", &mac[0], &mac[1], &mac[2], &mac[3], &mac[4], &mac[5]);
@@ -80,19 +112,23 @@ int main(int argc, char *argv[]) {
         struct ethhdr *eth = (struct ethhdr *)buffer;
         // Check if the packet is from the MAC address
         if (memcmp(eth->h_source, mac, 6) != 0) {
+            printf("Not from MAC address\n");
             continue;
         }
         // Check if the packet is an IP packet
         if (ntohs(eth->h_proto) != ETH_P_IP) {
+            printf("Not an IP packet\n");
             continue;
         }
         // Parse IP header
         struct iphdr *ipheader = (struct iphdr *)(buffer + sizeof(struct ethhdr));
         // Check if the packet uses protocol 254
         if (ipheader->protocol != 254) {
+            printf("Not protocol 254\n");
             continue;
         }
 
+        printf("Received packet\n");
         // Parse simDNS query
         char simDNSresponse[44];    // 4 bytes for header, 5 bytes for each response
 
