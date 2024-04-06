@@ -249,6 +249,11 @@ int main(int argc, char *argv[]){
             // copy simDNS query to packet
             memcpy(packet + sizeof(struct ethhdr) + sizeof(struct iphdr), query, 4+4*n+sumOfLengths);
 
+            if (ioctl(sockfd, SIOCGIFADDR, &ifr) < 0) {
+                perror("ioctl3");
+                exit(1);
+            }
+
             // Fill in IP header
             ipheader->ihl = 5;
             ipheader->version = 4;
