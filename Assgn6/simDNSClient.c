@@ -39,7 +39,7 @@ unsigned short checksum(unsigned short* buff, int _16bitword) {
 typedef struct node{
     int id;
     int n;
-    char query[4+4*(8+MAXLEN)];
+    char query[4*sizeof(char)+4*(8+MAXLEN)];
     char domains[8][MAXLEN];
     int len;
     int tries;
@@ -212,7 +212,7 @@ int main(int argc, char *argv[]){
             char query[4*sizeof(char) + sizeof(int)*n + sizeof(char)*sumOfLengths];    // 4 bytes for header, 4 bytes for each query string
             query[0] = (qid >> 8) & 0xFF;
             query[1] = qid & 0xFF;
-            query[2] = 0;
+            query[2] = 0x00;
             query[3] = n;
             int i=4,j=0;
             while(j < n){
