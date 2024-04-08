@@ -24,7 +24,7 @@
 
 
 #define MAXLEN 32
-#define interface_name "eno1"
+#define interface_name "lo"
 int ipID = 0;
 
 unsigned short checksum(unsigned short* buff, int _16bitword) {
@@ -286,8 +286,104 @@ int main(int argc, char *argv[]){
             }
             qid++;
 
+        timeout.tv_sec = 10;
+        timeout.tv_usec = 0;
+        here:
+        FD_ZERO(&readfds);
+        FD_SET(sockfd, &readfds);
+        int retval = select(sockfd+1, &readfds, NULL, NULL, &timeout);
+        if(retval == -1){
+            perror("select");
+            exit(1);
+        }
+        else if(retval == 0){
+            // node *temp = head;
+            // while(temp->next != NULL){
+            //     if(temp->next->tries == 4){
+            //         printf("Query ID: %d, no response\n", temp->next->id);
+            //     }
+            //     else{
+            //         printf("Query ID: %d, retransmitting query\n", temp->next->id);
+            //         sendto(sockfd, temp->next->query, temp->next->len, 0, (struct sockaddr *)&destaddr, sizeof(destaddr));
+            //         temp->next->tries++;
+            //     }
+            // }
+            queryNode->tries++;
+            if(queryNode->tries == 5){
+                printf("Query ID: %d, no response\n", queryNode->id);
+                deleteNode(head, queryNode->id);
+                continue;
+            }
+            else{
+                printf("Query ID: %d, retransmitting query\n", queryNode->id);
+                sendto(sockfd, queryNode->query, queryNode->len, 0, (struct sockaddr *)&destaddr, sizeof(destaddr));
+            }
+            timeout.tv_sec = 10;
+            timeout.tv_usec = 0;
+            goto here;
+        }
+        if(FD_ISSET(sockfd,&readfds)){
+            char response[82];
+            int recvBytes = recvfrom(sockfd, response, 82, 0, NULL, NULL);
+            if (recvBytes < 0) {
+                perror("recvfrom");
+                exit(1);
+            }
+            
+            // Parse Ethernet header
+            struct ethhdr *ethResponse = (struct ethhdr *)response;
+            if (ntohs(ethResponse->h_proto) != ETH_P_IP) {
+                printf("Not an IP packet\n");
+                goto here;
+            }
 
+            // Parse IP header
+            struct iphdr *ipResponse = (struct iphdr *)(response + sizeof(struct ethhdr));
+            
+            // check if protocol is 254
+            if(ipResponse->protocol != 254){
+                printf("Not a simDNS packet\n");
+                goto here;
+            }
 
+            // Parse simDNS response
+            char *simDNSresponse = response + sizeof(struct ethhdr) + sizeof(struct iphdr);
+
+            if(simDNSresponse[2] != 1){     // not a response
+                goto here;
+            }
+
+            // checking if query ID is valid
+            int queryID = (simDNSresponse[0] << 8) + simDNSresponse[1];
+            node *query=findNode(head, queryID);
+            if(query == NULL){
+                printf("Query ID: %d, no such query\n", queryID);
+                continue;
+            }
+
+            printf("Query ID: %d\n", queryID);
+
+            int responsePointer = 0;
+            int numResponses = simDNSresponse[3];
+            
+            printf("Total Query Strings: %d\n", numResponses);
+            responsePointer += 4;
+            for(int i = 0; i < numResponses; i++){
+                printf("%s\t\t", query->domains[i]);
+                if(simDNSresponse[responsePointer] == 0){
+                    printf("NO IP ADDRESS FOUND\n");
+                }
+                else{
+                    int ip = (simDNSresponse[responsePointer+1] << 24) | (simDNSresponse[responsePointer+2] << 16) | (simDNSresponse[responsePointer+3] << 8) | simDNSresponse[responsePointer+4];
+                    struct in_addr ip_addr;
+                    ip_addr.s_addr = ip;
+                    printf("%s\n", inet_ntoa(ip_addr));
+                    // printf("%d.%d.%d.%d\n", simDNSresponse[responsePointer+1], simDNSresponse[responsePointer+2], simDNSresponse[responsePointer+3], simDNSresponse[responsePointer+4]);
+                }
+                responsePointer += 5;
+            }
+            deleteNode(head, queryID);
+        }
         // int retval = select(sockfd+1, &readfds, NULL, NULL, &timeout);
         // if(retval == -1){
         //     perror("select");
@@ -305,7 +401,6 @@ int main(int argc, char *argv[]){
         //             temp->next->tries++;
         //         }
         //     }
-        //     continue;
         // }
         // if(FD_ISSET(STDIN_FILENO, &readfds)){
         //     int n;
