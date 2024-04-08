@@ -20,8 +20,8 @@
 #include <time.h>
 
 #define BUFFSIZE 1518
-#define DROPRATE 0
-#define interface_name "eno1"
+#define DROPRATE 0.5
+#define interface_name "lo"
 int ipID = 0;
 
 unsigned short checksum(unsigned short* buff, int _16bitword) {
@@ -42,10 +42,10 @@ int dropmessage(float p) {
 int main(int argc, char *argv[]) {
     srand(time(NULL));
 
-    if (argc < 2) {
-        fprintf(stderr, "Usage: %s <MAC address>\n", argv[0]);
-        exit(1);
-    }
+    // if (argc < 2) {
+    //     fprintf(stderr, "Usage: %s <MAC address>\n", argv[0]);
+    //     exit(1);
+    // }
 
     // Raw socket creation
     int sockfd = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
@@ -86,17 +86,17 @@ int main(int argc, char *argv[]) {
     unsigned char srcmac[6];
     for (int i = 0; i < ETH_ALEN; i++) {
         srcmac[i] = (unsigned char)strtol("00:00:00:00:00:00"+3*i, NULL, 16);
-        printf("%02x:", srcmac[i]);
+        // printf("%02x:", srcmac[i]);
     }
-    printf("\n");
+    // printf("\n");
     // get mac from argv[1]
-    unsigned char mac[6];
+    // unsigned char mac[6];
     // sscanf(argv[1], "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx", &mac[0], &mac[1], &mac[2], &mac[3], &mac[4], &mac[5]);
-    for (int i = 0; i < ETH_ALEN; i++) {
-        mac[i] = (unsigned char)strtol(argv[1]+3*i, NULL, 16);
-        printf("%02x:", mac[i]);
-    }
-    printf("\n");
+    // for (int i = 0; i < ETH_ALEN; i++) {
+    //     mac[i] = (unsigned char)strtol(argv[1]+3*i, NULL, 16);
+        // printf("%02x:", mac[i]);
+    // }
+    // printf("\n");
 
     // Receive packets
     char buffer[BUFFSIZE];
@@ -118,11 +118,11 @@ int main(int argc, char *argv[]) {
 
         // Parse Ethernet header
         struct ethhdr *eth = (struct ethhdr *)buffer;
-        // Check if the packet is from the MAC address
-        if (memcmp(eth->h_source, mac, 6) != 0) {
-            printf("Not from MAC address\n");
-            continue;
-        }
+        // // Check if the packet is from the MAC address
+        // if (memcmp(eth->h_source, mac, 6) != 0) {
+        //     printf("Not from MAC address\n");
+        //     continue;
+        // }
         // Check if the packet is an IP packet
         if (ntohs(eth->h_proto) != ETH_P_IP) {
             printf("Not an IP packet\n");
@@ -136,11 +136,11 @@ int main(int argc, char *argv[]) {
             continue;
         }
 
-        printf("Received packet\n");
-        for (int i = 0; i < len; i++) {
-            printf("%02x ", buffer[i]);
-        }
-        printf("\n");
+        // printf("Received packet\n");
+        // for (int i = 0; i < len; i++) {
+        //     printf("%02x ", buffer[i]);
+        // }
+        // printf("\n");
 
         // Parse simDNS query
         char simDNSresponse[44];    // 4 bytes for header, 5 bytes for each response
@@ -152,8 +152,8 @@ int main(int argc, char *argv[]) {
         simDNSresponse[2] = 0x01;    // Response
 
         int qID = (simDNSquery[0]<<8) | simDNSquery[1];
-        printf("Query ID: %d\n", qID);
-        printf("Query type: %d\n", simDNSquery[2]);
+        // printf("Query ID: %d\n", qID);
+        // printf("Query type: %d\n", simDNSquery[2]);
 
 
         // Parse query
@@ -244,9 +244,9 @@ int main(int argc, char *argv[]) {
             perror("sendto");
             exit(1);
         }
-        printf("Sent response\n");
-        for (int i = 0; i < packetLength; i++) {
-            printf("%02x ", packet[i]);
-        }
+        // printf("Sent response\n");
+        // for (int i = 0; i < packetLength; i++) {
+        //     printf("%02x ", packet[i]);
+        // }
     }
 }

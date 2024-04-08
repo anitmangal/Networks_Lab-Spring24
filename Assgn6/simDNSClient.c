@@ -39,7 +39,7 @@ unsigned short checksum(unsigned short* buff, int _16bitword) {
 typedef struct node{
     int id;
     int n;
-    char query[4*sizeof(char)+4*(8+MAXLEN)];
+    char query[sizeof(struct ethhdr) + sizeof(struct iphdr) + 4*sizeof(char)+8*(MAXLEN)*sizeof(char)];
     char domains[8][MAXLEN];
     int len;
     int tries;
@@ -173,7 +173,7 @@ int main(int argc, char *argv[]){
         printf("What do you wanna do?: ");
         char cmd[MAXLEN];
         scanf("%s", cmd);
-        if(strcmp(cmd, "exit") == 0){
+        if(strcmp(cmd, "EXIT") == 0){
             break;
         }
         else if(strcmp(cmd, "getIP")){
@@ -183,7 +183,7 @@ int main(int argc, char *argv[]){
 
             int n;
             scanf("%d", &n);
-            printf("Enter %d queries\n", n);
+            // printf("Enter %d queries\n", n);
             char domain[n][MAXLEN];
             for(int i = 0; i < n; i++){
                 scanf("%s", domain[i]);
@@ -226,8 +226,8 @@ int main(int argc, char *argv[]){
                 }
                 j++;
             }
-            for (int i = 0; i < 4+4*n+sumOfLengths; i++) printf("%c ", query[i]);
-            printf("\n");
+            // for (int i = 0; i < 4+4*n+sumOfLengths; i++) printf("%c ", query[i]);
+            // printf("\n");
 
             // create packet to send as query
             int packlen = sizeof(struct ethhdr) + sizeof(struct iphdr) + 4*sizeof(char)+sizeof(int)*n+sizeof(char)*sumOfLengths;
@@ -270,15 +270,15 @@ int main(int argc, char *argv[]){
             queryNode->len = 4+4*n+sumOfLengths;
             queryNode->n = n;
             queryNode->tries = 1;
-            memcpy(queryNode->query, query, 4+4*n+sumOfLengths);
+            memcpy(queryNode->query, packet, packlen);
             for(int i = 0; i < n; i++){
                 strcpy(queryNode->domains[i], domain[i]);
             }
             queryNode->next = NULL;
             insertNode(head, queryNode);
             
-            for (int i = 0; i < packlen; i++) printf("%02x ", packet[i]);
-            printf("\n");
+            // for (int i = 0; i < packlen; i++) printf("%02x ", packet[i]);
+            // printf("\n");
             int sentBytes = sendto(sockfd, packet, packlen, 0, (struct sockaddr *)&destaddr, sizeof(destaddr));
             if (sentBytes < 0) {
                 perror("sendto");
@@ -357,8 +357,8 @@ int main(int argc, char *argv[]){
             int queryID = (simDNSresponse[0] << 8) + simDNSresponse[1];
             node *query=findNode(head, queryID);
             if(query == NULL){
-                printf("Query ID: %d, no such query\n", queryID);
-                continue;
+                // printf("Query ID: %d, no such query\n", queryID);
+                goto here;
             }
 
             printf("Query ID: %d\n", queryID);
