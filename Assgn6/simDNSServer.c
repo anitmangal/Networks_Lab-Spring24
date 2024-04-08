@@ -190,7 +190,11 @@ int main(int argc, char *argv[]) {
                 simDNSresponse[responsePointer+2] = host->h_addr_list[0][1];
                 simDNSresponse[responsePointer+3] = host->h_addr_list[0][2];
                 simDNSresponse[responsePointer+4] = host->h_addr_list[0][3];
-                printf("Found IP: %u.%u.%u.%u\n", host->h_addr_list[0][0], host->h_addr_list[0][1], host->h_addr_list[0][2], host->h_addr_list[0][3]);
+                int ip = (host->h_addr_list[0][0]<<24) | (host->h_addr_list[0][1]<<16) | (host->h_addr_list[0][2]<<8) | host->h_addr_list[0][3];
+                struct in_addr ipAddr;
+                ipAddr.s_addr = ip;
+                printf("IP address: %s\n", inet_ntoa(ipAddr));
+
             }
             responsePointer += 5;
         }
@@ -208,7 +212,7 @@ int main(int argc, char *argv[]) {
         memcpy(destaddr.sll_addr, eth->h_source, 6);
 
         // Create packet to send as response
-        int packetLength = sizeof(struct ethhdr)+sizeof(struct iphdr)+4*sizeof(char)+5*sizeof(char)*numQ;
+        int packetLength = sizeof(struct ethhdr)+sizeof(struct iphdr)+sizeof(char)*responsePointer;
         char packet[packetLength];            // 18 bytes for Ethernet header, 20 bytes for IP header, 44 bytes for simDNS response
         // Pointers to Ethernet and IP headers
         struct ethhdr *ethResponse = (struct ethhdr *)packet;

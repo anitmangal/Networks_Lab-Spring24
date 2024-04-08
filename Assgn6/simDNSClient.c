@@ -256,6 +256,7 @@ int main(int argc, char *argv[]){
             ipheader->check = checksum((unsigned short *)ipheader, sizeof(struct iphdr)/2);
             ipheader->saddr = inet_addr("127.0.0.1");
             ipheader->daddr = inet_addr("127.0.0.1");       //????
+            ipheader->frag_off = 0;
 
             // Fill in Ethernet header
             eth->h_proto = htons(ETH_P_IP);
