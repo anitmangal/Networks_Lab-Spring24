@@ -18,52 +18,76 @@
 #include <linux/if_ether.h>
 #include <linux/if_packet.h>
 #include <time.h>
+#include <signal.h>
 
 #define BUFFSIZE 1518
-#define DROPRATE 0.5
+#define DROPRATE 0.2
 #define interface_name "lo"
 int ipID = 0;
 
-unsigned short checksum(unsigned short* buff, int _16bitword) {
-    unsigned long sum;
-    for(sum=0;_16bitword>0;_16bitword--)
-    sum+=htons(*(buff)++);
-    sum = ((sum >> 16) + (sum & 0xFFFF));
-    sum += (sum>>16);
-    return (unsigned short)(~sum);
+// Linked list to store query IDs to handle duplicate queries
+typedef struct node{
+    int id;
+    struct node *next;
+}node;
+
+void insertNode(node *head, int id){
+    node *current = head;
+    while(current->next != NULL){
+        current = current->next;
+    }
+    current->next = (node *)malloc(sizeof(node));
+    current->next->id = id;
+    current->next->next = NULL;
 }
 
+node *findNode(node *head, int id){
+    node *current = head;
+    while(current != NULL){
+        if(current->id == id) return current;
+        current = current->next;
+    }
+    return NULL;
+}
+
+// Drop message with probability p
 int dropmessage(float p) {
     float r = (float)rand()/(float)RAND_MAX;
     if (r < p) return 1;
     return 0;
 }
 
-int main(int argc, char *argv[]) {
+// Singal handler to free memory and close socket
+node * headptr;
+int sockfd;
+void sigHandler(int sig) {
+    if (sig != SIGINT) return;
+    node *current = headptr;
+    node *temp;
+    while(current != NULL){
+        temp = current;
+        current = current->next;
+        free(temp);
+    }
+    close(sockfd);
+    exit(0);
+}
+
+int main() {
+    signal(SIGINT, sigHandler);
+    node *head = (node *)malloc(sizeof(node));
+    headptr = head;
+    head->id = 0;
+    head->next = NULL;
+
     srand(time(NULL));
 
-    // if (argc < 2) {
-    //     fprintf(stderr, "Usage: %s <MAC address>\n", argv[0]);
-    //     exit(1);
-    // }
-
-    // Raw socket creation
-    int sockfd = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
+    // Raw socket creation in promiscuous mode
+    sockfd = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
     if (sockfd < 0) {
         perror("socket");
         exit(1);
     }
-    printf("Socket created\n");
-
-
-    // struct ifreq ifr;
-    // memset(&ifr, 0, sizeof(ifr));
-    // strcpy((char*)ifr.ifr_name, interface_name);
-    // if (ioctl(sockfd, SIOCGIFINDEX, &ifr) < 0) {
-    //     perror("ioctl1");
-    //     exit(1);
-    // }
-    // printf("Interface index: %d\n", ifr.ifr_ifindex);
 
     // Bind raw socket to local IP Address
     struct sockaddr_ll sll;
@@ -75,32 +99,16 @@ int main(int argc, char *argv[]) {
         perror("bind");
         exit(1);
     }
-    printf("Socket bound\n");
-
-    // if (ioctl(sockfd, SIOCGIFHWADDR, &ifr) < 0) {
-    //     perror("ioctl2");
-    //     exit(1);
-    // }
-    // printf("MAC address: ");
-
-    unsigned char srcmac[6];
-    for (int i = 0; i < ETH_ALEN; i++) {
-        srcmac[i] = (unsigned char)strtol("00:00:00:00:00:00"+3*i, NULL, 16);
-        // printf("%02x:", srcmac[i]);
-    }
-    // printf("\n");
-    // get mac from argv[1]
-    // unsigned char mac[6];
-    // sscanf(argv[1], "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx", &mac[0], &mac[1], &mac[2], &mac[3], &mac[4], &mac[5]);
-    // for (int i = 0; i < ETH_ALEN; i++) {
-    //     mac[i] = (unsigned char)strtol(argv[1]+3*i, NULL, 16);
-        // printf("%02x:", mac[i]);
-    // }
-    // printf("\n");
 
     // Receive packets
     char buffer[BUFFSIZE];
     while(1) {
+        /*
+
+            RECEIVE PACKET
+
+        */
+
         int len = recvfrom(sockfd, buffer, BUFFSIZE, 0, NULL, NULL);
         if (len < 0) {
             perror("recvfrom");
@@ -112,66 +120,52 @@ int main(int argc, char *argv[]) {
 
         // Drop packet with probability DROPRATE
         if (dropmessage(DROPRATE)) {
-            printf("Dropped packet\n");
             continue;
         }
 
         // Parse Ethernet header
         struct ethhdr *eth = (struct ethhdr *)buffer;
-        // // Check if the packet is from the MAC address
-        // if (memcmp(eth->h_source, mac, 6) != 0) {
-        //     printf("Not from MAC address\n");
-        //     continue;
-        // }
+
         // Check if the packet is an IP packet
         if (ntohs(eth->h_proto) != ETH_P_IP) {
-            printf("Not an IP packet\n");
             continue;
         }
+
         // Parse IP header
         struct iphdr *ipheader = (struct iphdr *)(buffer + sizeof(struct ethhdr));
         // Check if the packet uses protocol 254
         if (ipheader->protocol != 254) {
-            printf("Not protocol 254\n");
             continue;
         }
 
-        // printf("Received packet\n");
-        // for (int i = 0; i < len; i++) {
-        //     printf("%02x ", buffer[i]);
-        // }
-        // printf("\n");
-
         // Parse simDNS query
-        char simDNSresponse[44];    // 4 bytes for header, 5 bytes for each response
+        char simDNSresponse[44];    // 4 bytes for header, 5 bytes for each query string response
 
-        char *simDNSquery = buffer + sizeof(struct ethhdr) + sizeof(struct iphdr);
+        char *simDNSquery = buffer + sizeof(struct ethhdr) + sizeof(struct iphdr);  // Start of simDNS query in packet
+
         // Same ID as query
         simDNSresponse[0] = simDNSquery[0];
         simDNSresponse[1] = simDNSquery[1];
-        simDNSresponse[2] = 0x01;    // Response
+        simDNSresponse[2] = 0x01;    // Response type
 
         int qID = (simDNSquery[0]<<8) | simDNSquery[1];
-        // printf("Query ID: %d\n", qID);
-        // printf("Query type: %d\n", simDNSquery[2]);
+        if(findNode(head, qID) != NULL) continue;
 
 
         // Parse query
         char type = simDNSquery[2];
         if ((int)type == 1) continue;   // Only support Query type
 
-        // Parse number of queries
+        // Parse number of query strings
         uint8_t numQ = simDNSquery[3];
         simDNSresponse[3] = numQ;
-        printf("Number of queries: %d\n", numQ);
 
-        // Parse queries
-        int responsePointer = 4;
-        int qStrPointer = 4;
+        // Parse query strings
+        int responsePointer = 4;    // Cursor to response string
+        int qStrPointer = 4;    // Cursor to query string
         for (int i = 0; i < numQ; i++) {
             // Get length of domain
             int domainSize = (simDNSquery[qStrPointer]<<24) | (simDNSquery[qStrPointer+1]<<16) | (simDNSquery[qStrPointer+2]<<8) | simDNSquery[qStrPointer+3];
-            printf("Domain size: %d\n", domainSize);
             qStrPointer += 4;
             // Get domain
             char domain[domainSize+1];
@@ -179,7 +173,6 @@ int main(int argc, char *argv[]) {
                 domain[j] = simDNSquery[qStrPointer+j];
             }
             domain[domainSize] = '\0';
-            printf("Domain: %s\n", domain);
             qStrPointer += domainSize;
             struct hostent *host = gethostbyname(domain);       // Get IP address
             if (host == NULL || host->h_addr_list == NULL) simDNSresponse[responsePointer] = 0x00;         // No such domain 
@@ -190,35 +183,32 @@ int main(int argc, char *argv[]) {
                 simDNSresponse[responsePointer+2] = host->h_addr_list[0][1];
                 simDNSresponse[responsePointer+3] = host->h_addr_list[0][2];
                 simDNSresponse[responsePointer+4] = host->h_addr_list[0][3];
-                int ip = (host->h_addr_list[0][0]<<24) | (host->h_addr_list[0][1]<<16) | (host->h_addr_list[0][2]<<8) | host->h_addr_list[0][3];
-                struct in_addr ipAddr;
-                ipAddr.s_addr = ip;
-                printf("IP address: %s\n", inet_ntoa(ipAddr));
-
             }
             responsePointer += 5;
         }
 
         /*
+
             SEND RESPONSE PACKET
+
         */
 
-        // Get MAC address from query
+        // Fill in destination address
         struct sockaddr_ll destaddr;
         destaddr.sll_family = AF_PACKET;
         destaddr.sll_protocol = htons(ETH_P_ALL);
         destaddr.sll_ifindex = if_nametoindex(interface_name);
         destaddr.sll_halen = 6;
-        memcpy(destaddr.sll_addr, eth->h_source, 6);
+        memcpy(destaddr.sll_addr, eth->h_source, 6);            // Send response to source address
 
         // Create packet to send as response
         int packetLength = sizeof(struct ethhdr)+sizeof(struct iphdr)+sizeof(char)*responsePointer;
-        char packet[packetLength];            // 18 bytes for Ethernet header, 20 bytes for IP header, 44 bytes for simDNS response
+        char packet[packetLength];
         // Pointers to Ethernet and IP headers
         struct ethhdr *ethResponse = (struct ethhdr *)packet;
         struct iphdr *ipResponse = (struct iphdr *)(packet + sizeof(struct ethhdr));
 
-        // Copy simDNS response to packet
+        // Copy simDNS response created above to packet
         memcpy(packet + sizeof(struct ethhdr) + sizeof(struct iphdr), simDNSresponse, responsePointer);
 
         // Fill in IP header
@@ -230,7 +220,6 @@ int main(int argc, char *argv[]) {
         ipResponse->frag_off = 0;
         ipResponse->ttl = 64;
         ipResponse->protocol = 254;
-        ipResponse->check = checksum((unsigned short *)ipResponse, sizeof(struct iphdr)/2);
         ipResponse->saddr = ipheader->daddr;
         ipResponse->daddr = ipheader->saddr;
 
@@ -239,14 +228,12 @@ int main(int argc, char *argv[]) {
         memcpy(ethResponse->h_source, eth->h_dest, 6);
         ethResponse->h_proto = htons(ETH_P_IP);
 
+        // Send response
         int sentBytes = sendto(sockfd, packet, packetLength, 0, (struct sockaddr *)&destaddr, sizeof(destaddr));
         if (sentBytes < 0) {
             perror("sendto");
             exit(1);
         }
-        // printf("Sent response\n");
-        // for (int i = 0; i < packetLength; i++) {
-        //     printf("%02x ", packet[i]);
-        // }
+        insertNode(head, qID);
     }
 }
