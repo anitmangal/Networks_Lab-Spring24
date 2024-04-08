@@ -20,8 +20,8 @@
 #include <time.h>
 
 #define BUFFSIZE 1518
-#define DROPRATE 0
-#define interface_name "wlan0"
+#define DROPRATE 0.2
+#define interface_name "lo"
 int ipID = 0;
 
 typedef struct node{
