@@ -24,7 +24,7 @@
 
 
 #define MAXLEN 32
-#define interface_name "lo"
+#define interface_name "wlan0"
 int ipID = 0;
 
 unsigned short checksum(unsigned short* buff, int _16bitword) {
@@ -167,9 +167,6 @@ int main(int argc, char *argv[]){
 
 
     while(1){
-        FD_ZERO(&readfds);
-        FD_SET(sockfd, &readfds);
-        FD_SET(STDIN_FILENO, &readfds);
         printf("What do you wanna do?: ");
         char cmd[MAXLEN];
         scanf("%s", cmd);
@@ -561,4 +558,12 @@ int main(int argc, char *argv[]){
         //     deleteNode(head, queryID);
         // }
     }
+    node *temp = head;
+    while(temp->next != NULL){
+        node *temp2 = temp->next;
+        temp->next = temp->next->next;
+        free(temp2);
+    }
+    free(head);
+    close(sockfd);
 }

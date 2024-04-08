@@ -20,17 +20,32 @@
 #include <time.h>
 
 #define BUFFSIZE 1518
-#define DROPRATE 0.5
-#define interface_name "lo"
+#define DROPRATE 0
+#define interface_name "wlan0"
 int ipID = 0;
 
-unsigned short checksum(unsigned short* buff, int _16bitword) {
-    unsigned long sum;
-    for(sum=0;_16bitword>0;_16bitword--)
-    sum+=htons(*(buff)++);
-    sum = ((sum >> 16) + (sum & 0xFFFF));
-    sum += (sum>>16);
-    return (unsigned short)(~sum);
+typedef struct node{
+    int id;
+    struct node *next;
+}node;
+
+void insertNode(node *head, int id){
+    node *current = head;
+    while(current->next != NULL){
+        current = current->next;
+    }
+    current->next = (node *)malloc(sizeof(node));
+    current->next->id = id;
+    current->next->next = NULL;
+}
+
+node *findNode(node *head, int id){
+    node *current = head;
+    while(current != NULL){
+        if(current->id == id) return current;
+        current = current->next;
+    }
+    return NULL;
 }
 
 int dropmessage(float p) {
@@ -40,6 +55,9 @@ int dropmessage(float p) {
 }
 
 int main(int argc, char *argv[]) {
+    node *head = (node *)malloc(sizeof(node));
+    head->id = 0;
+    head->next = NULL;
     srand(time(NULL));
 
     // if (argc < 2) {
@@ -152,6 +170,7 @@ int main(int argc, char *argv[]) {
         simDNSresponse[2] = 0x01;    // Response
 
         int qID = (simDNSquery[0]<<8) | simDNSquery[1];
+        if(findNode(head, qID) != NULL) continue;
         // printf("Query ID: %d\n", qID);
         // printf("Query type: %d\n", simDNSquery[2]);
 
@@ -230,7 +249,6 @@ int main(int argc, char *argv[]) {
         ipResponse->frag_off = 0;
         ipResponse->ttl = 64;
         ipResponse->protocol = 254;
-        ipResponse->check = checksum((unsigned short *)ipResponse, sizeof(struct iphdr)/2);
         ipResponse->saddr = ipheader->daddr;
         ipResponse->daddr = ipheader->saddr;
 
@@ -244,6 +262,8 @@ int main(int argc, char *argv[]) {
             perror("sendto");
             exit(1);
         }
+        insertNode(head, qID);
+
         // printf("Sent response\n");
         // for (int i = 0; i < packetLength; i++) {
         //     printf("%02x ", packet[i]);
