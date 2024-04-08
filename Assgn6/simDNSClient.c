@@ -117,41 +117,32 @@ int main(int argc, char *argv[]){
     }
     printf("Socket created\n");
 
-    struct ifreq ifr;
-    memset(&ifr, 0, sizeof(ifr));
-    strcpy((char*)ifr.ifr_name, interface_name);
-    if (ioctl(sockfd, SIOCGIFINDEX, &ifr) < 0) {
-        perror("ioctl1");
-        exit(1);
-    }
-    printf("Interface index: %d\n", ifr.ifr_ifindex);
-
     // Bind raw socket to local IP Address
     struct sockaddr_ll sll;
     memset(&sll, 0, sizeof(sll));
     sll.sll_family = AF_PACKET;
     sll.sll_protocol = htons(ETH_P_ALL);
-    sll.sll_ifindex = ifr.ifr_ifindex;
+    sll.sll_ifindex = if_nametoindex(interface_name);
     if (bind(sockfd, (struct sockaddr *)&sll, sizeof(sll)) < 0) {
         perror("bind");
         exit(1);
     }
     printf("Socket bound\n");
 
-    if (ioctl(sockfd, SIOCGIFHWADDR, &ifr) < 0) {
-        perror("ioctl2");
-        exit(1);
-    }
-
     unsigned char srcmac[6];
-    memcpy(srcmac, (unsigned char*)ifr.ifr_hwaddr.sa_data, ETH_ALEN);
+    // memcpy(srcmac, (unsigned char*)ifr.ifr_hwaddr.sa_data, ETH_ALEN);
+    // for (int i = 0; i < ETH_ALEN; i++) {
+    //     printf("%02x:", srcmac[i]);
+    // }
     for (int i = 0; i < ETH_ALEN; i++) {
+        srcmac[i] = (unsigned char)strtol("00:00:00:00:00:00"+3*i, NULL, 16);
         printf("%02x:", srcmac[i]);
     }
     printf("\n");
     // get mac from argv[1]
     unsigned char mac[6];
-    sscanf(argv[1], "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx", &mac[0], &mac[1], &mac[2], &mac[3], &mac[4], &mac[5]);
+    // sscanf(argv[1], "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx", &mac[0], &mac[1], &mac[2], &mac[3], &mac[4], &mac[5]);
+    for (int i = 0; i < ETH_ALEN; i++) mac[i] = (unsigned char)strtol(argv[1] + 3*i, NULL, 16);
     printf("mac: %02x:%02x:%02x:%02x:%02x:%02x\n", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 
     uint16_t qid=1;
@@ -168,7 +159,7 @@ int main(int argc, char *argv[]){
     struct sockaddr_ll destaddr;
     destaddr.sll_family = AF_PACKET;
     destaddr.sll_protocol = htons(ETH_P_ALL);
-    destaddr.sll_ifindex = ifr.ifr_ifindex;
+    destaddr.sll_ifindex = if_nametoindex(interface_name);
     destaddr.sll_halen = 6;
     for(int i = 0; i < 6; i++){
         destaddr.sll_addr[i] = mac[i];
@@ -249,10 +240,10 @@ int main(int argc, char *argv[]){
             // copy simDNS query to packet
             memcpy(packet + sizeof(struct ethhdr) + sizeof(struct iphdr), query, 4+4*n+sumOfLengths);
 
-            if (ioctl(sockfd, SIOCGIFADDR, &ifr) < 0) {
-                perror("ioctl3");
-                exit(1);
-            }
+            // if (ioctl(sockfd, SIOCGIFADDR, &ifr) < 0) {
+            //     perror("ioctl3");
+            //     exit(1);
+            // }
 
             // Fill in IP header
             ipheader->ihl = 5;
