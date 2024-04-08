@@ -28,8 +28,10 @@ clean:
 	rm -f $(CLIENT_OBJ) $(SERVER_OBJ) $(CLIENT_EXEC) $(SERVER_EXEC)
 
 run_client: $(CLIENT_EXEC)
-	./$(CLIENT_EXEC) 00:00:00:00:00:00
+	@echo "Enter MAC address of the server: "; \
+	read mac; \
+	sudo ./$(CLIENT_EXEC) mac;
 
 run_server: $(SERVER_EXEC)
-	./$(SERVER_EXEC) 00:00:00:00:00:00
+	sudo ./$(SERVER_EXEC)
 

@@ -29,9 +29,9 @@
 #define interface_name "lo"
 int ipID = 0;
 
+// Struct for query table entry
 typedef struct node{
     int id;
-    pthread_t tid;
     int n;
     char query[sizeof(struct ethhdr) + sizeof(struct iphdr) + 4*sizeof(char)+8*(MAXLEN)*sizeof(char)];
     char domains[8][MAXLEN];
@@ -72,6 +72,7 @@ node *findNode(node *head, int id){
     return NULL;
 }
 
+// Function to check if domain is valid
 int isDomainValid(char *domain){
     int len = strlen(domain);
     if(len < 3 || len > 31){
@@ -80,9 +81,6 @@ int isDomainValid(char *domain){
     int i = 0;
     while(i < len){
         if(domain[i] == '.'){
-            // if(i == 0 || i == len-1 || domain[i-1] == '.'){
-            //     return 0;
-            // }
         }
         else if(domain[i] == '-'){
             if(i == 0 || i == len-1 || domain[i-1] == '-' || domain[i+1] == '-'){
@@ -97,15 +95,19 @@ int isDomainValid(char *domain){
     return 1;
 }
 
+// Mutex lock
 pthread_mutex_t lock;
 
+// Struct for arguments to pass to thread
 typedef struct argument{
     int sockfd;
     struct sockaddr_ll destaddr;
     node *head;
 }argument;
 
+// Function to receive and retransmit queries (Thread function)
 void *R(void *arg){
+    // Set timeout for select, get list head and socket file descriptor
     struct timeval timeout;
     fd_set readfds;
     argument *argu = (argument *)arg;
@@ -114,7 +116,6 @@ void *R(void *arg){
     pthread_mutex_lock(&lock);
     node *head = argu->head;
     pthread_mutex_unlock(&lock);
-    int f=0;
     timeout.tv_sec = 10;
     timeout.tv_usec = 0;
     while(1){
@@ -126,28 +127,30 @@ void *R(void *arg){
             exit(1);
         }
         else if(retval == 0){
+            // Timeout
             pthread_mutex_lock(&lock);
             node *temp = head;
             while(temp->next != NULL){
                 if(temp->next->tries == 4){
-                    printf("Query ID: %d, no response\n", temp->next->id);
+                    // Drop query since it has been retransmitted 3 times
                     node *temp2 = temp->next;
                     temp->next = temp->next->next;
                     free(temp2);
                 }
                 else{
-                    printf("Query ID: %d, retransmitting query\n", temp->next->id);
+                    // Retransmit query, increment tries
                     sendto(sockfd, temp->next->query, temp->next->len, 0, (struct sockaddr *)&destaddr, sizeof(destaddr));
                     temp->next->tries++;
                     temp=temp->next;
                 }
             }
             pthread_mutex_unlock(&lock);
-            timeout.tv_sec = 10;
+            timeout.tv_sec = 10;        // Reset timeout
             timeout.tv_usec = 0;
         }
         else{
             if(FD_ISSET(sockfd,&readfds)){
+                // Some packet received
                 char response[82];
                 int recvBytes = recvfrom(sockfd, response, 82, 0, NULL, NULL);
                 if (recvBytes < 0) {
@@ -155,10 +158,9 @@ void *R(void *arg){
                     exit(1);
                 }
                 
-                // Parse Ethernet header
+                // Parse Ethernet header, if not IP packet, continue
                 struct ethhdr *ethResponse = (struct ethhdr *)response;
                 if (ntohs(ethResponse->h_proto) != ETH_P_IP) {
-                    printf("Not an IP packet\n");
                     continue;
                 }
 
@@ -167,7 +169,6 @@ void *R(void *arg){
                 
                 // check if protocol is 254
                 if(ipResponse->protocol != 254){
-                    printf("Not a simDNS packet\n");
                     continue;
                 }
 
@@ -187,7 +188,8 @@ void *R(void *arg){
                     continue;
                 }
 
-                printf("Query ID: %d\n", queryID);
+                // Output response as table
+                printf("\nQuery ID: %d\n", queryID);
 
                 int responsePointer = 0;
                 int numResponses = simDNSresponse[3];
@@ -207,10 +209,12 @@ void *R(void *arg){
                     }
                     responsePointer += 5;
                 }
+                printf("\nWhat do you want to do?: ");
+                fflush(stdout);
                 pthread_mutex_lock(&lock);
                 deleteNode(head, queryID);
                 pthread_mutex_unlock(&lock);
-                timeout.tv_sec = 10;
+                timeout.tv_sec = 10;        // Reset timeout
                 timeout.tv_usec = 0;
             }
         }
@@ -218,6 +222,7 @@ void *R(void *arg){
 }
 
 int main(int argc, char *argv[]){
+    // Initialize mutex lock
     pthread_mutex_init(&lock, NULL);
     pthread_mutex_trylock(&lock);
     pthread_mutex_unlock(&lock);
@@ -232,7 +237,6 @@ int main(int argc, char *argv[]){
         perror("socket");
         exit(EXIT_FAILURE);
     }
-    printf("Socket created\n");
 
     // Bind raw socket to local IP Address
     struct sockaddr_ll sll;
@@ -244,39 +248,32 @@ int main(int argc, char *argv[]){
         perror("bind");
         exit(1);
     }
-    printf("Socket bound\n");
 
     unsigned char srcmac[6];
-    // memcpy(srcmac, (unsigned char*)ifr.ifr_hwaddr.sa_data, ETH_ALEN);
-    // for (int i = 0; i < ETH_ALEN; i++) {
-    //     printf("%02x:", srcmac[i]);
-    // }
     for (int i = 0; i < ETH_ALEN; i++) {
         srcmac[i] = (unsigned char)strtol("00:00:00:00:00:00"+3*i, NULL, 16);
-        printf("%02x:", srcmac[i]);
     }
-    printf("\n");
-    // get mac from argv[1]
+
+    // get destination mac from argv[1]
     unsigned char mac[6];
-    // sscanf(argv[1], "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx", &mac[0], &mac[1], &mac[2], &mac[3], &mac[4], &mac[5]);
     for (int i = 0; i < ETH_ALEN; i++) mac[i] = (unsigned char)strtol(argv[1] + 3*i, NULL, 16);
-    printf("mac: %02x:%02x:%02x:%02x:%02x:%02x\n", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 
     uint16_t qid=1;
     node *head = (node *)malloc(sizeof(node));
     head->id = 0;
     head->next = NULL;
 
-    // mac address of server
+    // Destination address
     struct sockaddr_ll destaddr;
     destaddr.sll_family = AF_PACKET;
     destaddr.sll_protocol = htons(ETH_P_ALL);
     destaddr.sll_ifindex = if_nametoindex(interface_name);
     destaddr.sll_halen = 6;
     for(int i = 0; i < 6; i++){
-        destaddr.sll_addr[i] = mac[i];
+        destaddr.sll_addr[i] = mac[i];          // Destination MAC address from argv[1]
     }
 
+    // Create Receiver thread
     pthread_t tid;
     pthread_attr_t attr;
     pthread_attr_init(&attr);
@@ -292,7 +289,7 @@ int main(int argc, char *argv[]){
     }
 
     while(1){
-        printf("What do you wanna do?: ");
+        printf("What do you want to do?: ");
         char cmd[MAXLEN];
         scanf("%s", cmd);
         if(strcmp(cmd, "EXIT") == 0){
@@ -305,7 +302,6 @@ int main(int argc, char *argv[]){
 
             int n;
             scanf("%d", &n);
-            // printf("Enter %d queries\n", n);
             char domain[n][MAXLEN];
             for(int i = 0; i < n; i++){
                 scanf("%s", domain[i]);
@@ -331,6 +327,8 @@ int main(int argc, char *argv[]){
             for(int i = 0; i < n; i++){
                 sumOfLengths += strlen(domain[i]);
             }
+
+            // Construct query
             char query[4*sizeof(char) + sizeof(int)*n + sizeof(char)*sumOfLengths];    // 4 bytes for header, 4 bytes for each query string
             query[0] = (qid >> 8) & 0xFF;
             query[1] = qid & 0xFF;
@@ -338,22 +336,22 @@ int main(int argc, char *argv[]){
             query[3] = n;
             int i=4,j=0;
             while(j < n){
+                // Length of domain
                 int len= strlen(domain[j]);
                 query[i++] = (len >> 24) & 0xFF;
                 query[i++] = (len >> 16) & 0xFF;
                 query[i++] = (len >> 8) & 0xFF;
                 query[i++] = len & 0xFF;
+                // Domain
                 for(int k = 0; k < len; k++){
                     query[i++] = domain[j][k];
                 }
                 j++;
             }
-            // for (int i = 0; i < 4+4*n+sumOfLengths; i++) printf("%c ", query[i]);
-            // printf("\n");
 
             // create packet to send as query
             int packlen = sizeof(struct ethhdr) + sizeof(struct iphdr) + 4*sizeof(char)+sizeof(int)*n+sizeof(char)*sumOfLengths;
-            char packet[packlen];     // 38 bytes for Ethernet and IP headers, 4+4*n+sumOfLengths bytes for query
+            char packet[packlen];
 
             // Pointers to Ethernet and IP headers
             struct ethhdr *eth = (struct ethhdr *)packet;
@@ -362,21 +360,16 @@ int main(int argc, char *argv[]){
             // copy simDNS query to packet
             memcpy(packet + sizeof(struct ethhdr) + sizeof(struct iphdr), query, 4+4*n+sumOfLengths);
 
-            // if (ioctl(sockfd, SIOCGIFADDR, &ifr) < 0) {
-            //     perror("ioctl3");
-            //     exit(1);
-            // }
-
             // Fill in IP header
             ipheader->ihl = 5;
             ipheader->version = 4;
             ipheader->tos = 0;
-            ipheader->tot_len = htons(20+4+4*n+sumOfLengths);    // Header: 20 bytes, Data: 4+4*n+sumOfLengths bytes
+            ipheader->tot_len = htons(sizeof(struct iphdr)+4*sizeof(char)+sizeof(int)*n+sizeof(char)*sumOfLengths);
             ipheader->id = htons(ipID++);
             ipheader->ttl = 64;
             ipheader->protocol = 254;
-            ipheader->saddr = inet_addr("127.0.0.1");
-            ipheader->daddr = inet_addr("127.0.0.1");       //????
+            ipheader->saddr = inet_addr("127.0.0.1");       // Loopback address
+            ipheader->daddr = inet_addr("127.0.0.1");       // Loopback address
             ipheader->frag_off = 0;
 
             // Fill in Ethernet header
@@ -386,6 +379,7 @@ int main(int argc, char *argv[]){
                 eth->h_source[i] = srcmac[i];
             }
 
+            // Query bookkeeping
             node *queryNode = (node *)malloc(sizeof(node));
             queryNode->id = qid;
             queryNode->len = packlen;
@@ -400,6 +394,7 @@ int main(int argc, char *argv[]){
             insertNode(head, queryNode);
             pthread_mutex_unlock(&lock);
             
+            // Send query
             int sentBytes = sendto(sockfd, packet, packlen, 0, (struct sockaddr *)&destaddr, sizeof(destaddr));
             if (sentBytes < 0) {
                 perror("sendto");
@@ -407,6 +402,8 @@ int main(int argc, char *argv[]){
             }
             qid++;
     }
+
+    // Clean up
     pthread_mutex_lock(&lock);
     node *temp = head;
     while(temp->next != NULL){
@@ -418,5 +415,4 @@ int main(int argc, char *argv[]){
     pthread_mutex_unlock(&lock);
     close(sockfd);
     pthread_mutex_destroy(&lock);
-    pthread_exit(NULL);
 }

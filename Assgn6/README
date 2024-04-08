@@ -1,0 +1,8 @@
+Instructions to run:
+1. make all
+2. make run_server
+3. make run_client
+4. Enter mac address of the server when asked
+
+*Interface name can be changed in both the C files as a macro.
+*Drop message probability can be changed in simDNSServer.c as a macro.
